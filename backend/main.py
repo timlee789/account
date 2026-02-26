@@ -220,5 +220,12 @@ def delete_cash_record(record_id: int):
         return {"status": "success"}
     raise HTTPException(status_code=500, detail="Failed to delete cash record")
 
+# --- Vercel Serverless specific routing ---
+# Since Vercel passes the raw "/api/..." path to the ASGI application,
+# we need to mount our main API to "/api" so it correctly responds to Next.js routes.
+_core_app = app
+app = FastAPI()
+app.mount("/api", _core_app)
+
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:_core_app", host="0.0.0.0", port=8000, reload=True)
