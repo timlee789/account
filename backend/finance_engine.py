@@ -7,6 +7,10 @@ import os
 from datetime import datetime
 from dotenv import load_dotenv
 from typing import Any
+import warnings
+
+# Suppress pandas SQLAlchemy warning for raw psycopg2 connections
+warnings.filterwarnings('ignore', category=UserWarning, module='pandas')
 
 load_dotenv()
 

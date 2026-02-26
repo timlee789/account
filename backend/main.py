@@ -8,12 +8,57 @@ from typing import Optional, Any
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Request, Response
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from finance_engine import ExpenseEngine 
 import uvicorn
 
 app = FastAPI()
+
+class AuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if request.method == "OPTIONS":
+            return await call_next(request)
+            
+        allowed = ["/login", "/logout", "/", "/api", "/api/"]
+        path = request.url.path
+        if any(path.endswith(p) for p in allowed):
+            return await call_next(request)
+            
+        token = request.cookies.get("auth-token")
+        admin_pw = os.environ.get("ADMIN_PASSWORD", "1234")
+        
+        if token != admin_pw:
+            return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+            
+        return await call_next(request)
+
+app.add_middleware(AuthMiddleware)
+
+class LoginRequest(BaseModel):
+    password: str
+
+@app.post("/login")
+def login(req: LoginRequest, response: Response):
+    admin_pw = os.environ.get("ADMIN_PASSWORD", "1234")
+    if req.password == admin_pw:
+        response.set_cookie(
+            key="auth-token", 
+            value=admin_pw, 
+            httponly=False,
+            max_age=60*60*24*7, 
+            samesite="lax",
+            secure=True
+        )
+        return {"status": "success"}
+    raise HTTPException(status_code=401, detail="Invalid admin password")
+
+@app.post("/logout")
+def logout(response: Response):
+    response.delete_cookie("auth-token")
+    return {"status": "success"}
 
 app.add_middleware(
     CORSMiddleware,

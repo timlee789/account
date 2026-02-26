@@ -46,31 +46,44 @@ export default function Home() {
     }
   }, [activeTab, selectedMonth]);
 
+  const checkAuth = (res: Response) => {
+    if (res.status === 401) {
+      window.location.href = '/login';
+      return false;
+    }
+    return true;
+  };
+
   const fetchData = async () => {
     try {
       if (activeTab === 'dashboard') {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dashboard-summary?month=${selectedMonth}`);
+        if (!checkAuth(res)) return;
         const data = await res.json();
         setDashboardSummary(data);
       } else if (activeTab === 'ledger') {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions`);
+        if (!checkAuth(res)) return;
         const data = await res.json();
         setTransactions(data.data);
       } else if (activeTab === 'invoice') {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/invoices`);
+        if (!checkAuth(res)) return;
         const data = await res.json();
         setInvoices(data.data);
       } else if (activeTab === 'sales') {
-        // 👈 매출 데이터 가져오기
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sales`);
+        if (!checkAuth(res)) return;
         const data = await res.json();
         setSalesRecords(data);
       } else if (activeTab === 'credit_card') {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/credit-cards`);
+        if (!checkAuth(res)) return;
         const data = await res.json();
         setCreditCards(data.data);
       } else if (activeTab === 'cash') {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cash`);
+        if (!checkAuth(res)) return;
         const data = await res.json();
         setCashRecords(data.data);
       }

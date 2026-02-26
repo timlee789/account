@@ -13,7 +13,7 @@ export default function Header({ onUpload, loading, showUpload = true }: Props) 
   const router = useRouter();
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/logout`, { method: 'POST' });
     router.push('/login');
     router.refresh();
   };
