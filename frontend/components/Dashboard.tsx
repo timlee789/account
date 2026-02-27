@@ -50,38 +50,38 @@ export default function Dashboard({ summary, selectedMonth, onMonthChange }: Pro
       {/* 1. 핵심 지표 (메인 4개 카드) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Total Revenue */}
-        <div className="relative group overflow-hidden bg-gray-900/50 backdrop-blur-sm p-6 rounded-2xl border border-emerald-900/30 hover:border-emerald-500/50 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(16,185,129,0.12)] hover:-translate-y-1">
-          <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+        <div className="relative group overflow-hidden bg-gray-900/50 backdrop-blur-sm p-6 rounded-2xl border border-emerald-900/30 hover:border-emerald-500/50 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(16,185,129,0.12)] hover:-translate-y-1 text-right">
+          <div className="absolute top-0 left-0 p-4 opacity-5 pointer-events-none">
             <svg className="w-16 h-16 text-emerald-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>
             {/* Placeholder icon, consider heroicons if available */}
           </div>
           <p className="text-emerald-500/80 text-xs font-black uppercase tracking-widest mb-1">Total Revenue</p>
-          <p className="text-3xl font-black text-white">
+          <p className="text-3xl font-black text-white flex justify-end">
             ${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </p>
         </div>
 
         {/* Total Expense */}
-        <div className="relative group overflow-hidden bg-gray-900/50 backdrop-blur-sm p-6 rounded-2xl border border-rose-900/30 hover:border-rose-500/50 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(244,63,94,0.12)] hover:-translate-y-1">
+        <div className="relative group overflow-hidden bg-gray-900/50 backdrop-blur-sm p-6 rounded-2xl border border-rose-900/30 hover:border-rose-500/50 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(244,63,94,0.12)] hover:-translate-y-1 text-right">
           <p className="text-rose-500/80 text-xs font-black uppercase tracking-widest mb-1">Total Expense</p>
-          <p className="text-3xl font-black text-white">
+          <p className="text-3xl font-black text-white flex justify-end">
             ${totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </p>
         </div>
 
         {/* Net Profit */}
-        <div className="relative group overflow-hidden bg-gradient-to-br from-indigo-900/40 to-purple-900/40 backdrop-blur-md p-6 rounded-2xl border border-indigo-700/50 hover:border-indigo-400/80 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(99,102,241,0.2)] hover:-translate-y-1">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
+        <div className="relative group overflow-hidden bg-gradient-to-br from-indigo-900/40 to-purple-900/40 backdrop-blur-md p-6 rounded-2xl border border-indigo-700/50 hover:border-indigo-400/80 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(99,102,241,0.2)] hover:-translate-y-1 text-right">
+          <div className="absolute top-0 left-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl -ml-10 -mt-10"></div>
           <p className="text-indigo-300 text-xs font-black uppercase tracking-widest mb-1 shadow-sm">Net Profit (Take Home)</p>
-          <p className={`text-3xl font-black ${netProfit >= 0 ? 'text-white' : 'text-rose-400'}`}>
+          <p className={`text-3xl font-black flex justify-end ${netProfit >= 0 ? 'text-white' : 'text-rose-400'}`}>
             ${netProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </p>
         </div>
 
         {/* Cash on Hand */}
-        <div className="relative group overflow-hidden bg-gray-900/50 backdrop-blur-sm p-6 rounded-2xl border border-amber-900/30 hover:border-amber-500/50 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(245,158,11,0.12)] hover:-translate-y-1">
+        <div className="relative group overflow-hidden bg-gray-900/50 backdrop-blur-sm p-6 rounded-2xl border border-amber-900/30 hover:border-amber-500/50 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(245,158,11,0.12)] hover:-translate-y-1 text-right">
           <p className="text-amber-500/80 text-xs font-black uppercase tracking-widest mb-1">Est. Cash on Hand</p>
-          <p className="text-3xl font-black text-white">
+          <p className="text-3xl font-black text-white flex justify-end">
             ${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </p>
         </div>
@@ -99,37 +99,37 @@ export default function Dashboard({ summary, selectedMonth, onMonthChange }: Pro
 
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
 
-            <div className="bg-gray-800/60 p-5 rounded-xl border border-gray-700/50 hover:bg-gray-800 transition-colors">
+            <div className="bg-gray-800/60 p-5 rounded-xl border border-gray-700/50 hover:bg-gray-800 transition-colors text-right">
               <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-2">Cash</p>
               <p className="text-xl font-bold text-gray-200">${salesBreakdown.cash.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
             </div>
 
-            <div className="bg-gray-800/60 p-5 rounded-xl border border-gray-700/50 hover:bg-gray-800 transition-colors">
+            <div className="bg-gray-800/60 p-5 rounded-xl border border-gray-700/50 hover:bg-gray-800 transition-colors text-right">
               <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-2">Debit</p>
               <p className="text-xl font-bold text-gray-200">${salesBreakdown.debit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
             </div>
 
-            <div className="bg-gray-800/60 p-5 rounded-xl border border-gray-700/50 hover:bg-gray-800 transition-colors">
+            <div className="bg-gray-800/60 p-5 rounded-xl border border-gray-700/50 hover:bg-gray-800 transition-colors text-right">
               <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-2">Credit</p>
               <p className="text-xl font-bold text-gray-200">${salesBreakdown.credit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
             </div>
 
-            <div className="bg-indigo-900/20 p-5 rounded-xl border border-indigo-500/20 hover:bg-indigo-900/30 transition-colors">
+            <div className="bg-indigo-900/20 p-5 rounded-xl border border-indigo-500/20 hover:bg-indigo-900/30 transition-colors text-right">
               <p className="text-indigo-400/70 text-[10px] font-black uppercase tracking-widest mb-2">DoorDash</p>
               <p className="text-xl font-bold text-indigo-300">${salesBreakdown.doordash.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
             </div>
 
-            <div className="bg-indigo-900/20 p-5 rounded-xl border border-indigo-500/20 hover:bg-indigo-900/30 transition-colors">
+            <div className="bg-indigo-900/20 p-5 rounded-xl border border-indigo-500/20 hover:bg-indigo-900/30 transition-colors text-right">
               <p className="text-cyan-400/70 text-[10px] font-black uppercase tracking-widest mb-2">Stripe</p>
               <p className="text-xl font-bold text-cyan-300">${salesBreakdown.stripe.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
             </div>
 
-            <div className="bg-amber-900/10 p-5 rounded-xl border border-amber-500/20 hover:bg-amber-900/20 transition-colors">
+            <div className="bg-amber-900/10 p-5 rounded-xl border border-amber-500/20 hover:bg-amber-900/20 transition-colors text-right">
               <p className="text-amber-500/70 text-[10px] font-black uppercase tracking-widest mb-2">CC Tips</p>
               <p className="text-xl font-bold text-amber-300">${salesBreakdown.tips.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
             </div>
 
-            <div className="bg-amber-900/10 p-5 rounded-xl border border-amber-500/20 hover:bg-amber-900/20 transition-colors">
+            <div className="bg-amber-900/10 p-5 rounded-xl border border-amber-500/20 hover:bg-amber-900/20 transition-colors text-right">
               <p className="text-emerald-500/70 text-[10px] font-black uppercase tracking-widest mb-2">Cash Tips</p>
               <p className="text-xl font-bold text-emerald-300">${salesBreakdown.cash_tips.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
             </div>
