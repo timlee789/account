@@ -39,43 +39,33 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4 relative overflow-hidden">
-            {/* Background Animated Blobs */}
-            <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[120px] mix-blend-screen opacity-50 animate-pulse" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-emerald-600/20 rounded-full blur-[150px] mix-blend-screen opacity-50" />
+        <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
 
-            {/* Glassmorphism Card */}
-            <div className="relative z-10 w-full max-w-md">
-                <div className="backdrop-blur-xl bg-white/5 border border-white/10 p-8 rounded-3xl shadow-2xl transition-all duration-500 hover:border-white/20">
+            {/* Minimalist Centered Card */}
+            <div className="w-full max-w-sm">
+                <div className="bg-[#111] border border-gray-800 p-8 rounded-3xl shadow-2xl flex flex-col relative">
 
-                    <div className="flex flex-col items-center mb-8">
-                        <div className="w-16 h-16 bg-gradient-to-tr from-indigo-500 to-emerald-400 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30 mb-6">
-                            <Lock className="w-8 h-8 text-white" />
-                        </div>
-                        <h1 className="text-3xl font-bold text-white tracking-tight mb-2 text-center">
-                            Collegiate Grill ERP
+                    <div className="flex flex-col items-center justify-center mb-8">
+                        <Lock className="w-7 h-7 text-indigo-500 mb-4" />
+                        <h1 className="text-xl font-medium text-white tracking-wide text-center">
+                            Collegiate Grill
                         </h1>
-                        <p className="text-gray-400 text-sm text-center">
-                            Enter your master password to access the financial dashboard
-                        </p>
+                        <p className="text-gray-500 text-xs mt-1">Admin Dashboard</p>
                     </div>
 
-                    <form onSubmit={handleLogin} className="space-y-6">
+                    <form onSubmit={handleLogin} className="space-y-4">
                         <div>
-                            <div className="relative">
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="Master Password"
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-lg"
-                                    autoFocus
-                                    required
-                                />
-                            </div>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Enter Master Password"
+                                className="w-full bg-[#1a1a1a] border border-gray-700/50 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-center tracking-widest text-sm"
+                                autoFocus
+                                required
+                            />
                             {error && (
-                                <p className="text-rose-400 text-sm mt-3 flex items-center gap-1.5 font-medium ml-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+                                <p className="text-rose-400 text-xs mt-3 flex items-center justify-center gap-1.5 font-medium">
                                     {error}
                                 </p>
                             )}
@@ -84,27 +74,17 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="group w-full relative overflow-hidden rounded-2xl bg-white text-gray-900 font-semibold text-lg py-4 transition-all hover:bg-gray-100 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:hover:scale-100"
+                            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm py-3.5 rounded-xl transition-all shadow-sm active:scale-[0.98] disabled:opacity-70 flex justify-center items-center"
                         >
-                            <div className="flex items-center justify-center gap-2">
-                                {loading ? (
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                ) : (
-                                    <>
-                                        Unlock Dashboard
-                                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                                    </>
-                                )}
-                            </div>
+                            {loading ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                "Unlock"
+                            )}
                         </button>
                     </form>
 
                 </div>
-
-                {/* Footer / Info */}
-                <p className="text-center text-gray-600 text-xs mt-8">
-                    Protected by AES-256 Encryption & Vercel Edge Serverless
-                </p>
             </div>
         </div>
     );
