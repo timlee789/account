@@ -74,28 +74,38 @@ engine = ExpenseEngine()
 def get_dashboard(month: Optional[str] = None):
     sales = engine.get_sales_records()
     trans = engine.get_all_transactions()
+    cash_rcds = engine.get_all_cash_records()
     
     if month:
         sales = [s for s in sales if str(s.get('date', '')).startswith(month)]
         trans = [t for t in trans if str(t.get('date', '')).startswith(month)]
+        cash_rcds = [c for c in cash_rcds if str(c.get('date', '')).startswith(month)]
     
-    total_revenue = sum(s['total'] for s in sales)
-    total_expense = sum(t['amount'] if 'amount' in t else t.get('expense', 0) for t in trans if (t.get('amount', 0) > 0 or t.get('expense', 0) > 0))
+    # 수익 합계 = Financial Ledger (transactions)의 income 합계 + Sales Record의 현금 매출 (Cash Income)
+    ledger_income = sum(float(t.get('income') or 0) for t in trans)
+    sales_cash_income = sum(float(s.get('cash') or 0) + float(s.get('cash_tips') or 0) for s in sales)
+    total_revenue = ledger_income + sales_cash_income
+    
+    # 지출 합계 = Ledger(transactions)의 expense + Cash records의 expense + Ledger의 cash_amount (Cash Expense)
+    ledger_expense = sum(float(t.get('amount') or t.get('expense') or 0) for t in trans if (float(t.get('amount') or 0) > 0 or float(t.get('expense') or 0) > 0))
+    cash_records_expense = sum(float(c.get('expense') or 0) for c in cash_rcds)
+    ledger_cash_expense = sum(float(t.get('cash_amount') or 0) for t in trans)
+    total_expense = ledger_expense + cash_records_expense + ledger_cash_expense
     
     # Calculate cash on hand (cash + cash_tips from sales - cash_amount from transactions)
-    total_cash_sales = sum(s.get('cash', 0) + s.get('cash_tips', 0) for s in sales)
-    total_cash_paid = sum(t.get('cash_amount', 0) for t in trans)
+    total_cash_sales = sum(float(s.get('cash') or 0) + float(s.get('cash_tips') or 0) for s in sales)
+    total_cash_paid = sum(float(t.get('cash_amount') or 0) for t in trans)
     current_cash = total_cash_sales - total_cash_paid
     
     # Calculate detailed sales breakdown
     sales_breakdown = {
-        "cash": sum(s.get('cash', 0) for s in sales),
-        "debit": sum(s.get('debit', 0) for s in sales),
-        "credit": sum(s.get('credit', 0) for s in sales),
-        "doordash": sum(s.get('doordash', 0) for s in sales),
-        "stripe": sum(s.get('stripe', 0) for s in sales),
-        "tips": sum(s.get('tips', 0) for s in sales),
-        "cash_tips": sum(s.get('cash_tips', 0) for s in sales),
+        "cash": sum(float(s.get('cash') or 0) for s in sales),
+        "debit": sum(float(s.get('debit') or 0) for s in sales),
+        "credit": sum(float(s.get('credit') or 0) for s in sales),
+        "doordash": sum(float(s.get('doordash') or 0) for s in sales),
+        "stripe": sum(float(s.get('stripe') or 0) for s in sales),
+        "tips": sum(float(s.get('tips') or 0) for s in sales),
+        "cash_tips": sum(float(s.get('cash_tips') or 0) for s in sales),
     }
     
     return {
@@ -125,6 +135,14 @@ class CashUpdate(BaseModel):
     field: str
     value: Any
 
+class TransactionCreate(BaseModel):
+    date: Optional[str] = None
+    description: Optional[str] = None
+    type: Optional[str] = None
+    category: Optional[str] = None
+    payee: Optional[str] = None
+    payee_note: Optional[str] = None
+
 @app.get("/")
 def read_root():
     return {"message": "Collegiate Grill ERP System Online"}
@@ -142,7 +160,73 @@ async def upload_file(file: UploadFile = File(...), target_tab: Optional[str] = 
 @app.get("/transactions")
 def get_transactions():
     data = engine.get_all_transactions()
+    sales = engine.get_sales_records()
+    
+    # 날짜별로 Sales Record의 현금(Cash + Cash Tips) 합계 맵 생성
+    sales_cash_map = {}
+    for s in sales:
+        date = s.get('date')
+        val = float(s.get('cash') or 0) + float(s.get('cash_tips') or 0)
+        if date and val > 0:
+            sales_cash_map[date] = val
+            
+    # 해당 날짜 거래 내역이 아예 없는지 확인
+    existing_dates = set(t.get('date', '') for t in data)
+    missing_dates = set(sales_cash_map.keys()) - existing_dates
+    has_inserted = False
+    
+    for d in missing_dates:
+        entry = {
+            'date': d,
+            'type': 'Cash Sales',
+            'desc': 'Daily Cash Income Record',
+            'income': 0,
+            'expense': 0,
+            'balance': 0,
+            'source': 'System'
+        }
+        engine._save_row(entry, table_name="transactions")
+        has_inserted = True
+        
+    # 만약 새로 추가된 행이 있다면 데이터를 다시 가져옵니다
+    if has_inserted:
+        data = engine.get_all_transactions()
+        
+    # 하루에 한 번만 cash_income이 보이도록 처리 (중복 방지)
+    processed_dates = set()
+    for t in data:
+        t_date = t.get('date')
+        if t_date in sales_cash_map and t_date not in processed_dates:
+            t['cash_income'] = sales_cash_map[t_date]
+            processed_dates.add(t_date)
+        else:
+            t['cash_income'] = 0.0
+            
+        t['cash_expense'] = float(t.get('cash_amount') or 0)
+        
     return {"count": len(data), "data": data}
+
+@app.post("/transactions")
+def add_transaction(req: TransactionCreate):
+    record = {
+        'date': req.date,
+        'description': req.description or 'Manual Ledger Entry',
+        'type': req.type or 'Manual Entry',
+        'category': req.category or '',
+        'payee': req.payee or '',
+        'payee_note': req.payee_note or ''
+    }
+    success, new_id = engine.add_transaction(record)
+    if success:
+        return {"status": "success", "id": new_id}
+    raise HTTPException(status_code=500, detail="Failed to add manual transaction")
+
+@app.delete("/transactions/{transaction_id}")
+def delete_transaction(transaction_id: int):
+    success = engine.delete_transaction(transaction_id)
+    if success:
+        return {"status": "success"}
+    raise HTTPException(status_code=500, detail="Failed to delete transaction")
 
 @app.get("/invoices")
 def get_invoices():

@@ -256,6 +256,58 @@ class ExpenseEngine:
             cursor.close()
             conn.close()
 
+    # --- Manual Financial Ledger Logic (신규) ---
+    def add_transaction(self, record: dict):
+        conn = self.get_conn()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                INSERT INTO transactions (
+                    date, type, category, payee, payee_note, 
+                    cash_amount, description, income, expense, 
+                    net_amount, bank_balance, account_source, is_duplicate_check
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+            ''', (
+                record.get('date', datetime.today().strftime('%Y-%m-%d')),
+                record.get('type', 'Manual Entry'),
+                record.get('category', ''),
+                record.get('payee', ''),
+                record.get('payee_note', ''),
+                0.0,
+                record.get('description', 'Manual Ledger Entry'),
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                'Manual',
+                f"manual_{datetime.now().timestamp()}" # unique dummy key
+            ))
+            new_id = cursor.fetchone()[0]
+            conn.commit()
+            return True, new_id
+        except Exception as e:
+            print(f"Failed to add manual transaction: {e}")
+            return False, str(e)
+        finally:
+            cursor.close()
+            conn.close()
+
+    def delete_transaction(self, tx_id: int):
+        conn = self.get_conn()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("DELETE FROM transactions WHERE id = %s", (tx_id,))
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"Failed to delete transaction: {e}")
+            return False
+        finally:
+            cursor.close()
+            conn.close()
+
     def get_all_transactions(self):
         try:
             conn = self.get_conn()

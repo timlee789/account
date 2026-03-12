@@ -122,6 +122,30 @@ export default function Home() {
     }
   };
 
+  const handleAddTransaction = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions`, { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: today })
+      });
+      if (res.ok) fetchData();
+    } catch (error) {
+      console.error("Add transaction failed:", error);
+    }
+  };
+
+  const handleDeleteTransaction = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this row?")) return;
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions/${id}`, { method: "DELETE" });
+      fetchData();
+    } catch (error) {
+      console.error("Delete transaction failed:", error);
+    }
+  };
+
   const handleCreditCardUpdate = async (id: number, field: string, value: string) => {
     try {
       const updated = creditCards.map((t: any) =>
@@ -234,8 +258,8 @@ export default function Home() {
     }
   };
   return (
-    <main className="min-h-screen p-6 sm:p-8 bg-gray-900">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <main className="min-h-screen p-6 sm:p-8 bg-gray-900 w-full overflow-hidden">
+      <div className="max-w-[1600px] w-full mx-auto space-y-6">
 
         <Header onUpload={handleFileUpload} loading={loading} showUpload={activeTab !== 'cash'} />
 
@@ -311,7 +335,12 @@ export default function Home() {
 
         {/* Ledger 탭: 기존 테이블만 표시 */}
         {activeTab === 'ledger' && (
-          <LedgerTable transactions={transactions} onUpdate={handleUpdate} />
+          <LedgerTable 
+            transactions={transactions} 
+            onUpdate={handleUpdate} 
+            onAdd={handleAddTransaction}
+            onDelete={handleDeleteTransaction}
+          />
         )}
 
         {/* Invoice 탭 */}

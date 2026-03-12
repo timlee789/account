@@ -30,7 +30,7 @@ export default function SalesTable({ sales, onUpdate, onDelete }: Props) {
   const sortedSales = [...sales].sort((a, b) => b.date.localeCompare(a.date));
   const rowsWithSubtotals: any[] = [];
   let currentMonth = "";
-  let monthSums = { cash: 0, debit: 0, credit: 0, cash_tips: 0, doordash: 0, stripe: 0, total: 0 };
+  let monthSums = { cash: 0, debit: 0, credit: 0, svc: 0, tips: 0, tax: 0, cash_tips: 0, doordash: 0, stripe: 0, total: 0 };
 
   sortedSales.forEach((s, idx) => {
     const month = s.date.substring(0, 7); // Extract YYYY-MM explicitly for grouping
@@ -39,16 +39,19 @@ export default function SalesTable({ sales, onUpdate, onDelete }: Props) {
     if (currentMonth && month !== currentMonth) {
       rowsWithSubtotals.push({ isSubtotal: true, month: currentMonth, ...monthSums });
       // 합계 초기화
-      monthSums = { cash: 0, debit: 0, credit: 0, cash_tips: 0, doordash: 0, stripe: 0, total: 0 };
+      monthSums = { cash: 0, debit: 0, credit: 0, svc: 0, tips: 0, tax: 0, cash_tips: 0, doordash: 0, stripe: 0, total: 0 };
     }
 
     currentMonth = month;
     rowsWithSubtotals.push(s);
 
-    // 합계 누적 (수정된 6개 항목 기준)
+    // 합계 누적
     monthSums.cash += s.cash || 0;
     monthSums.debit += s.debit || 0;
     monthSums.credit += s.credit || 0;
+    monthSums.svc += s.svc || 0;
+    monthSums.tips += s.tips || 0;
+    monthSums.tax += s.tax || 0;
     monthSums.cash_tips += s.cash_tips || 0;
     monthSums.doordash += s.doordash || 0;
     monthSums.stripe += s.stripe || 0;
@@ -76,10 +79,10 @@ export default function SalesTable({ sales, onUpdate, onDelete }: Props) {
         <table className="min-w-full border-collapse text-[11px]">
           <thead>
             <tr className="bg-gray-900 text-gray-400 uppercase font-bold tracking-tighter">
-              <th className="px-2 py-4 border-r border-gray-700 text-left w-20">DATE</th>
-              {columns.map(col => <th key={col.key} className="px-1 py-4 border-r border-gray-700 text-right">{col.label}</th>)}
-              <th className="px-2 py-4 border-r border-gray-700 text-right text-white bg-indigo-900/20">TOTAL</th>
-              <th className="px-2 py-4 text-left">MEMO/ACTION</th>
+              <th className="px-4 py-4 border-r border-gray-700 text-center w-28">DATE</th>
+              {columns.map(col => <th key={col.key} className="px-3 py-4 border-r border-gray-700 text-right">{col.label}</th>)}
+              <th className="px-4 py-4 border-r border-gray-700 text-right text-white bg-indigo-900/20">TOTAL</th>
+              <th className="px-4 py-4 text-left">MEMO/ACTION</th>
             </tr>
           </thead>
           <tbody>
@@ -87,33 +90,35 @@ export default function SalesTable({ sales, onUpdate, onDelete }: Props) {
               if (row.isSubtotal) {
                 return (
                   <tr key={`sub-${row.month}-${i}`} className="bg-indigo-900/60 font-black text-indigo-100">
-                    <td className="px-2 py-3 border-r border-gray-700 text-center">{row.month}월 합계</td>
-                    <td className="px-1 py-3 border-r border-gray-700 text-right text-green-300">${row.cash.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                    <td className="px-1 py-3 border-r border-gray-700 text-right text-blue-300">${row.debit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                    <td className="px-1 py-3 border-r border-gray-700 text-right text-purple-300">${row.credit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                    <td colSpan={3} className="border-r border-gray-700 bg-gray-900/40"></td>
-                    <td className="px-1 py-3 border-r border-gray-700 text-right text-teal-300">${row.cash_tips.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                    <td className="px-1 py-3 border-r border-gray-700 text-right text-pink-300">${row.doordash.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                    <td className="px-1 py-3 border-r border-gray-700 text-right text-cyan-300">${row.stripe.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                    <td className="px-2 py-3 border-r border-gray-700 text-right text-white underline underline-offset-4">${row.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="px-4 py-3 border-r border-gray-700 text-center">{row.month}월 합계</td>
+                    <td className="px-3 py-3 border-r border-gray-700 text-right text-green-300">${row.cash.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="px-3 py-3 border-r border-gray-700 text-right text-blue-300">${row.debit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="px-3 py-3 border-r border-gray-700 text-right text-purple-300">${row.credit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="px-3 py-3 border-r border-gray-700 text-right text-orange-300">${row.svc.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="px-3 py-3 border-r border-gray-700 text-right text-yellow-300">${row.tips.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="px-3 py-3 border-r border-gray-700 text-right text-red-300">${row.tax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="px-3 py-3 border-r border-gray-700 text-right text-teal-300">${row.cash_tips.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="px-3 py-3 border-r border-gray-700 text-right text-pink-300">${row.doordash.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="px-3 py-3 border-r border-gray-700 text-right text-cyan-300">${row.stripe.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="px-4 py-3 border-r border-gray-700 text-right text-white underline underline-offset-4">${row.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                     <td className="bg-gray-900/40"></td>
                   </tr>
                 );
               }
               return (
                 <tr key={row.date} className="hover:bg-gray-700/30 group border-b border-gray-700/50">
-                  <td className="px-2 py-3 font-bold text-gray-300 border-r border-gray-700 bg-gray-900/20">{row.date}</td>
+                  <td className="px-4 py-3 font-bold text-gray-300 border-r border-gray-700 bg-gray-900/20 text-center">{row.date}</td>
                   {columns.map(col => (
-                    <td key={col.key} className="px-1 py-1 border-r border-gray-700">
+                    <td key={col.key} className="px-3 py-2 border-r border-gray-700">
                       <input type="text" defaultValue={(row as any)[col.key] > 0 ? `$${Number((row as any)[col.key]).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : ""}
-                        className={`w-full bg-transparent text-right font-bold focus:outline-none px-1 ${col.color}`}
+                        className={`w-full bg-transparent text-right font-bold focus:outline-none px-2 ${col.color}`}
                         onBlur={(e) => { const n = parseFloat(e.target.value.replace(/[^0-9.]/g, "")) || 0; onUpdate(row.date, col.key, n); }} />
                     </td>
                   ))}
-                  <td className="px-2 py-3 text-right font-black text-white bg-indigo-900/10 border-r border-gray-700 shadow-inner">
+                  <td className="px-4 py-3 text-right font-black text-white bg-indigo-900/10 border-r border-gray-700 shadow-inner">
                     ${(row.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </td>
-                  <td className="px-2 py-1 flex justify-between items-center group">
+                  <td className="px-4 py-2 flex justify-between items-center group">
                     <input type="text" defaultValue={row.memo} onBlur={(e) => onUpdate(row.date, 'memo', e.target.value)}
                       className="flex-1 bg-transparent text-gray-500 italic text-[10px] outline-none" />
                     <button onClick={() => onDelete(row.date)} className="opacity-0 group-hover:opacity-100 text-rose-500 font-bold text-[9px] ml-1">DEL</button>
