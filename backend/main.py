@@ -120,10 +120,14 @@ def get_dashboard(month: Optional[str] = None):
 
 # 장부 거래 업데이트용
 class TransactionUpdate(BaseModel):
+    date: Optional[str] = None
     category: Optional[str] = None
     payee: Optional[str] = None
     payee_note: Optional[str] = None
     cash_amount: Optional[float] = None
+    income: Optional[float] = None
+    expense: Optional[float] = None
+    description: Optional[str] = None
 
 # 매출 기록 업데이트용 (신규)
 class SalesUpdate(BaseModel):
@@ -246,6 +250,9 @@ def update_transaction(transaction_id: int, update: TransactionUpdate):
     cursor = conn.cursor()
     
     try:
+        if update.date is not None:
+            cursor.execute("UPDATE transactions SET date = %s WHERE id = %s", (update.date, transaction_id))
+
         if update.category is not None:
             cursor.execute("UPDATE transactions SET category = %s WHERE id = %s", (update.category, transaction_id))
         
@@ -258,6 +265,15 @@ def update_transaction(transaction_id: int, update: TransactionUpdate):
         if update.cash_amount is not None:
             cursor.execute("UPDATE transactions SET cash_amount = %s WHERE id = %s", (update.cash_amount, transaction_id))
             
+        if update.income is not None:
+            cursor.execute("UPDATE transactions SET income = %s WHERE id = %s", (update.income, transaction_id))
+
+        if update.expense is not None:
+            cursor.execute("UPDATE transactions SET expense = %s WHERE id = %s", (update.expense, transaction_id))
+
+        if update.description is not None:
+            cursor.execute("UPDATE transactions SET description = %s WHERE id = %s", (update.description, transaction_id))
+
         conn.commit()
         return {"status": "success", "message": "Updated successfully"}
     except Exception as e:
