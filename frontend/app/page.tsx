@@ -8,16 +8,33 @@ import SalesTable from "@/components/SalesTable";
 import Dashboard from '@/components/Dashboard';
 import CreditCardTable from "@/components/CreditCardTable";
 import CashTable from "@/components/CashTable";
+import SettingsModal from "@/components/SettingsModal";
 
 export default function Home() {
+  const [showSettings, setShowSettings] = useState(false);
   // 탭 상태에 'sales' 추가
   const [activeTab, setActiveTab] = useState('dashboard');
   const [transactions, setTransactions] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [selectedMonth, setSelectedMonth] = useState(""); // YYYY-MM
 
+  const [categories, setCategories] = useState<{id: number, name: string}[]>([]);
+  const [payees, setPayees] = useState<{id: number, name: string}[]>([]);
+
+  const fetchOptions = async () => {
+    try {
+      const catRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`);
+      if (catRes.ok) setCategories((await catRes.json()).data);
+      const payRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payees`);
+      if (payRes.ok) setPayees((await payRes.json()).data);
+    } catch (e) {
+      console.error("Failed to load options", e);
+    }
+  };
+
   // Hydration mismatch 방지를 위해 클라이언트 마운트 후 날짜 설정
   useEffect(() => {
+    fetchOptions();
     setSelectedMonth(new Date().toISOString().substring(0, 7));
   }, []);
   const [dashboardSummary, setDashboardSummary] = useState({
@@ -339,9 +356,16 @@ export default function Home() {
         {activeTab === 'ledger' && (
           <LedgerTable 
             transactions={transactions} 
+            categories={categories}
+            payees={payees}
             onUpdate={handleUpdate} 
             onAdd={handleAddTransaction}
             onDelete={handleDeleteTransaction}
+            onRefreshOptions={fetchOptions}
+            onOpenSettings={() => {
+              console.log("PAGE.TSX: onOpenSettings fired! Triggering setShowSettings(true)");
+              setShowSettings(true);
+            }}
           />
         )}
 
@@ -374,6 +398,15 @@ export default function Home() {
           />
         )}
       </div>
+
+      {showSettings && (
+        <SettingsModal
+          categories={categories}
+          payees={payees}
+          onClose={() => setShowSettings(false)}
+          onRefreshOptions={fetchOptions}
+        />
+      )}
     </main>
   );
 }

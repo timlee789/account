@@ -2,43 +2,46 @@
 
 import SearchableSelect from "./SearchableSelect";
 
-const CATEGORIES = [
-  "Sales Deposit", "Cash Income",
-  "Food Material", "Wages", "Utility", "Rent",
-  "Tax", "Maintenance", "Service charges", "Insurance",
-  "Advertising", "Car Gas", "Car Payment", "Home Food",
-  "Home Etc", "Machine Lease", "Card Payment", "CASH OUT",
-  "Don't Know", "Other"
-];
-
-const PAYEES = [
-  "PFG", "US Foods", "Costco", "Walmart", "Publix",
-  "Georgia Power", "Liberty Utilities", "City of Gainesville",
-  "Claudia Cheves", "Teresa Vega", "Carlos", "JoeAne Ask", "Mauricio Carrasco", "Lizbeth",
-  "Auto-chlor system", "Best Linen Service", "Best Supply",
-  "State Tax", "Federal Tax", "R J Neese", "Corp SH Lee CPA",
-  "Chase Card", "Citi Card", "Amex"
-];
-
 interface Props {
   transactions: any[];
+  categories?: {id: number, name: string}[];
+  payees?: {id: number, name: string}[];
   onUpdate: (id: number, field: string, value: string) => void;
   onAdd?: () => void;
   onDelete?: (id: number) => void;
+  onRefreshOptions?: () => void;
+  onOpenSettings?: () => void;
 }
 
-export default function LedgerTable({ transactions, onUpdate, onAdd, onDelete }: Props) {
+export default function LedgerTable({ transactions, categories = [], payees = [], onUpdate, onAdd, onDelete, onRefreshOptions, onOpenSettings }: Props) {
   return (
-    <div className="bg-gray-800 rounded-xl shadow-xl overflow-hidden border border-gray-700">
-      {onAdd && (
+    <>
+      <div className="bg-gray-800 rounded-xl shadow-xl overflow-hidden border border-gray-700 relative">
+        {onAdd && (
         <div className="p-4 border-b border-gray-700 bg-gray-900/30 flex justify-between items-center">
           <h3 className="text-lg font-bold text-gray-200">Financial Ledger</h3>
-          <button 
-            onClick={onAdd}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded font-bold shadow-md transition-colors"
-          >
-            + Add Manual Row
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                console.log("⚙️ Manage Options clicked in LedgerTable!");
+                if (onOpenSettings) {
+                  onOpenSettings();
+                } else {
+                  console.error("onOpenSettings prop is missing!");
+                }
+              }}
+              className="relative z-10 cursor-pointer bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded font-bold shadow-md transition-colors flex items-center gap-1"
+            >
+              ⚙️ Manage Options
+            </button>
+            <button 
+              onClick={onAdd}
+              className="relative z-10 cursor-pointer bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded font-bold shadow-md transition-colors"
+            >
+              + Add Manual Row
+            </button>
+          </div>
         </div>
       )}
       {/* 테이블 영역 전체에 가로 스크롤 허용 속성 강화 */}
@@ -46,15 +49,15 @@ export default function LedgerTable({ transactions, onUpdate, onAdd, onDelete }:
         <table className="min-w-full border-collapse">
           <thead>
             <tr className="bg-gray-900/50">
-              <th className="px-4 py-3 border-r border-gray-600">Date</th>
-              <th className="px-4 py-3 border-r border-gray-600 text-indigo-400 min-w-[220px]">Category</th>
-              <th className="px-4 py-3 border-r border-gray-600 text-indigo-400 min-w-[220px]">Payee</th>
-              <th className="px-4 py-3 border-r border-gray-600 min-w-[220px]">Payee 2 (Note)</th>
-              <th className="px-4 py-3 border-r border-gray-600 text-right">Income</th>
-              <th className="px-4 py-3 border-r border-gray-600 text-right">Expense</th>
-              <th className="px-4 py-3 border-r border-gray-600 text-right text-emerald-400">Cash Income</th>
-              <th className="px-4 py-3 border-r border-gray-600 text-right text-rose-400">Cash Expense</th>
-              <th className="px-4 py-3 border-r border-gray-600 text-right">Balance</th>
+              <th className="px-2 py-3 border-r border-gray-600" style={{ width: '85px', minWidth: '85px', maxWidth: '85px', overflow: 'hidden' }}>Date</th>
+              <th className="px-2 py-3 border-r border-gray-600 text-indigo-400" style={{ width: '140px', minWidth: '140px', maxWidth: '140px', overflow: 'hidden' }}>Category</th>
+              <th className="px-2 py-3 border-r border-gray-600 text-indigo-400" style={{ width: '140px', minWidth: '140px', maxWidth: '140px', overflow: 'hidden' }}>Payee</th>
+              <th className="px-2 py-3 border-r border-gray-600" style={{ width: '140px', minWidth: '140px', maxWidth: '140px', overflow: 'hidden' }}>Payee 2 (Note)</th>
+              <th className="px-2 py-3 border-r border-gray-600 text-right text-xs" style={{ width: '85px', minWidth: '85px', maxWidth: '85px', overflow: 'hidden' }}>Income</th>
+              <th className="px-2 py-3 border-r border-gray-600 text-right text-xs" style={{ width: '85px', minWidth: '85px', maxWidth: '85px', overflow: 'hidden' }}>Expense</th>
+              <th className="px-2 py-3 border-r border-gray-600 text-right text-emerald-400 text-xs" style={{ width: '85px', minWidth: '85px', maxWidth: '85px', overflow: 'hidden' }}>Cash Income</th>
+              <th className="px-2 py-3 border-r border-gray-600 text-right text-rose-400 text-xs" style={{ width: '85px', minWidth: '85px', maxWidth: '85px', overflow: 'hidden' }}>Cash Expense</th>
+              <th className="px-2 py-3 border-r border-gray-600 text-right text-xs" style={{ width: '85px', minWidth: '85px', maxWidth: '85px', overflow: 'hidden' }}>Balance</th>
               <th className="px-4 py-3 border-r border-gray-600 text-left">Description</th>
               <th className="px-4 py-3 text-left">Source</th>
             </tr>
@@ -64,13 +67,13 @@ export default function LedgerTable({ transactions, onUpdate, onAdd, onDelete }:
             {transactions.map((t: any) => (
               <tr key={t.id} className="hover:bg-gray-700/50 transition-colors">
                 {/* 1. Date */}
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300 border-r border-gray-700">
+                <td className="px-2 py-3 whitespace-nowrap text-xs text-center text-gray-300 border-r border-gray-700" style={{ width: '85px', minWidth: '85px', maxWidth: '85px', overflow: 'hidden' }}>
                   {t.account_source === 'Manual' ? (
                     <input 
                       type="date" 
                       defaultValue={t.date} 
                       onBlur={(e) => onUpdate(t.id, 'date', e.target.value)}
-                      className="bg-transparent text-gray-300 outline-none w-full"
+                      className="bg-transparent text-gray-300 outline-none w-full text-xs"
                     />
                   ) : (
                     t.date
@@ -80,7 +83,7 @@ export default function LedgerTable({ transactions, onUpdate, onAdd, onDelete }:
                 {/* 2. Category Dropdown */}
                 <td className="px-2 py-2 border-r border-gray-700 bg-gray-800/50">
                   <SearchableSelect
-                    options={CATEGORIES}
+                    options={categories.map(c => c.name)}
                     value={t.category}
                     placeholder="Select..."
                     className="w-full"
@@ -91,7 +94,7 @@ export default function LedgerTable({ transactions, onUpdate, onAdd, onDelete }:
                 {/* 3. Payee Dropdown */}
                 <td className="px-2 py-2 border-r border-gray-700 bg-gray-800/50">
                   <SearchableSelect
-                    options={PAYEES}
+                    options={payees.map(p => p.name)}
                     value={t.payee}
                     placeholder="Select..."
                     className="w-full"
@@ -113,7 +116,7 @@ export default function LedgerTable({ transactions, onUpdate, onAdd, onDelete }:
                 </td>
 
                 {/* 5. Income */}
-                <td className="px-4 py-3 text-sm font-bold text-emerald-400 text-right border-r border-gray-700">
+                <td className="px-2 py-3 text-xs font-bold text-emerald-400 text-right border-r border-gray-700" style={{ width: '85px', minWidth: '85px', maxWidth: '85px', overflow: 'hidden' }}>
                   {t.account_source === 'Manual' ? (
                     <input
                       type="text"
@@ -122,7 +125,7 @@ export default function LedgerTable({ transactions, onUpdate, onAdd, onDelete }:
                          const val = parseFloat(e.target.value.replace(/[^0-9.]/g, "")) || 0;
                          onUpdate(t.id, 'income', val.toString());
                       }}
-                      className="w-full bg-transparent text-right text-emerald-400 font-bold outline-none"
+                      className="w-full bg-transparent text-right text-emerald-400 font-bold outline-none text-xs"
                     />
                   ) : (
                     t.income > 0 ? `$${t.income.toLocaleString()}` : "-"
@@ -130,7 +133,7 @@ export default function LedgerTable({ transactions, onUpdate, onAdd, onDelete }:
                 </td>
 
                 {/* 6. Expense */}
-                <td className="px-4 py-3 text-sm font-bold text-rose-400 text-right border-r border-gray-700">
+                <td className="px-2 py-3 text-xs font-bold text-rose-400 text-right border-r border-gray-700" style={{ width: '85px', minWidth: '85px', maxWidth: '85px', overflow: 'hidden' }}>
                    {t.account_source === 'Manual' ? (
                     <input
                       type="text"
@@ -139,7 +142,7 @@ export default function LedgerTable({ transactions, onUpdate, onAdd, onDelete }:
                          const val = parseFloat(e.target.value.replace(/[^0-9.]/g, "")) || 0;
                          onUpdate(t.id, 'expense', val.toString());
                       }}
-                      className="w-full bg-transparent text-right text-rose-400 font-bold outline-none"
+                      className="w-full bg-transparent text-right text-rose-400 font-bold outline-none text-xs"
                     />
                   ) : (
                     t.expense > 0 ? `$${t.expense.toLocaleString()}` : "-"
@@ -147,12 +150,12 @@ export default function LedgerTable({ transactions, onUpdate, onAdd, onDelete }:
                 </td>
 
                 {/* 7. Cash Income (Sales Record 연동 - 읽기 전용) */}
-                <td className="px-4 py-3 text-sm font-bold text-emerald-300 text-right border-r border-gray-700 bg-emerald-900/10">
+                <td className="px-2 py-3 text-xs font-bold text-emerald-300 text-right border-r border-gray-700 bg-emerald-900/10" style={{ width: '85px', minWidth: '85px', maxWidth: '85px', overflow: 'hidden' }}>
                   {t.cash_income > 0 ? `$${t.cash_income.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : "-"}
                 </td>
 
                 {/* 8. Cash Expense (직접 입력 가능 - 기존 cash_amount) */}
-                <td className="px-2 py-2 border-r border-gray-700 bg-rose-900/10 min-w-[100px]">
+                <td className="px-2 py-2 border-r border-gray-700 bg-rose-900/10" style={{ width: '85px', minWidth: '85px', maxWidth: '85px', overflow: 'hidden' }}>
                   <input
                     type="text"
                     inputMode="decimal"
@@ -168,12 +171,12 @@ export default function LedgerTable({ transactions, onUpdate, onAdd, onDelete }:
                       e.target.value = numericValue > 0 ? `$${numericValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : "";
                     }}
                     onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-                    className="w-full bg-transparent text-right text-rose-300 font-bold focus:outline-none"
+                    className="w-full bg-transparent text-right text-rose-300 font-bold focus:outline-none text-xs"
                   />
                 </td>
 
                 {/* 8. Balance (새로 추가됨 - 밀림 방지 핵심) */}
-                <td className="px-4 py-3 text-sm text-gray-100 text-right border-r border-gray-700">
+                <td className="px-2 py-3 text-xs text-gray-100 text-right border-r border-gray-700" style={{ width: '85px', minWidth: '85px', maxWidth: '85px', overflow: 'hidden' }}>
                   {t.bank_balance > 0 ? `$${t.bank_balance.toLocaleString()}` : "-"}
                 </td>
 
@@ -214,6 +217,7 @@ export default function LedgerTable({ transactions, onUpdate, onAdd, onDelete }:
           </tbody>
         </table>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

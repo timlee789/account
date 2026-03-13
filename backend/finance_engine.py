@@ -118,9 +118,130 @@ class ExpenseEngine:
                 description TEXT
             )
         ''')
+        # 6. Categories Table (동적 분류 관리용)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS categories (
+                id SERIAL PRIMARY KEY,
+                name TEXT UNIQUE NOT NULL
+            )
+        ''')
+        
+        # 7. Payees Table (동적 지급처 관리용)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS payees (
+                id SERIAL PRIMARY KEY,
+                name TEXT UNIQUE NOT NULL
+            )
+        ''')
+        conn.commit()
+        
+        # --- Seed Initial Data if empty ---
+        cursor.execute("SELECT COUNT(*) FROM categories")
+        if cursor.fetchone()[0] == 0:
+            initial_categories = [
+                "Sales Deposit", "Cash Income", "Food Material", "Wages", "Utility", "Rent",
+                "Tax", "Maintenance", "Service charges", "Insurance", "Advertising", 
+                "Car Gas", "Car Payment", "Home Food", "Home Etc", "Machine Lease", 
+                "Card Payment", "CASH OUT", "Don't Know", "Other"
+            ]
+            for cat in initial_categories:
+                cursor.execute("INSERT INTO categories (name) VALUES (%s) ON CONFLICT DO NOTHING", (cat,))
+                
+        cursor.execute("SELECT COUNT(*) FROM payees")
+        if cursor.fetchone()[0] == 0:
+            initial_payees = [
+                "PFG", "US Foods", "Costco", "Walmart", "Publix", "Georgia Power", 
+                "Liberty Utilities", "City of Gainesville", "Claudia Cheves", "Teresa Vega", 
+                "Carlos", "JoeAne Ask", "Mauricio Carrasco", "Lizbeth", "Auto-chlor system", 
+                "Best Linen Service", "Best Supply", "State Tax", "Federal Tax", 
+                "R J Neese", "Corp SH Lee CPA", "Chase Card", "Citi Card", "Amex"
+            ]
+            for payee in initial_payees:
+                cursor.execute("INSERT INTO payees (name) VALUES (%s) ON CONFLICT DO NOTHING", (payee,))
+                
         conn.commit()
         cursor.close()
         conn.close()
+
+    # --- Dynamic Options (Categories & Payees) ---
+    def get_categories(self):
+        try:
+            conn = self.get_conn()
+            df = pd.read_sql("SELECT * FROM categories ORDER BY name ASC", conn)
+            conn.close()
+            return df.to_dict(orient='records')
+        except Exception as e:
+            print(f"Error fetching categories: {e}")
+            return []
+
+    def add_category(self, name):
+        conn = self.get_conn()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("INSERT INTO categories (name) VALUES (%s) ON CONFLICT DO NOTHING RETURNING id", (name,))
+            added = cursor.fetchone()
+            conn.commit()
+            return {"status": "success", "id": added[0] if added else None}
+        except Exception as e:
+            conn.rollback()
+            return {"status": "error", "message": str(e)}
+        finally:
+            cursor.close()
+            conn.close()
+
+    def delete_category(self, category_id):
+        conn = self.get_conn()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("DELETE FROM categories WHERE id = %s", (category_id,))
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error deleting category: {e}")
+            return False
+        finally:
+            cursor.close()
+            conn.close()
+
+    def get_payees(self):
+        try:
+            conn = self.get_conn()
+            df = pd.read_sql("SELECT * FROM payees ORDER BY name ASC", conn)
+            conn.close()
+            return df.to_dict(orient='records')
+        except Exception as e:
+            print(f"Error fetching payees: {e}")
+            return []
+
+    def add_payee(self, name):
+        conn = self.get_conn()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("INSERT INTO payees (name) VALUES (%s) ON CONFLICT DO NOTHING RETURNING id", (name,))
+            added = cursor.fetchone()
+            conn.commit()
+            return {"status": "success", "id": added[0] if added else None}
+        except Exception as e:
+            conn.rollback()
+            return {"status": "error", "message": str(e)}
+        finally:
+            cursor.close()
+            conn.close()
+
+    def delete_payee(self, payee_id):
+        conn = self.get_conn()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("DELETE FROM payees WHERE id = %s", (payee_id,))
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error deleting payee: {e}")
+            return False
+        finally:
+            cursor.close()
+            conn.close()
+
 
     # --- Sales Record Logic (신규 추가) ---
     def get_sales_records(self):

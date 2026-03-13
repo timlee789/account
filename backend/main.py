@@ -3,7 +3,7 @@ import sys
 import os
 import psycopg2
 from pydantic import BaseModel
-from typing import Optional, Any
+from typing import Optional, Any, Union
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
@@ -133,7 +133,14 @@ class TransactionUpdate(BaseModel):
 class SalesUpdate(BaseModel):
     date: str
     field: str
-    value: Any
+    value: Union[float, int, str]
+
+# 동적 카테고리/지급처 생성용
+class CategoryCreate(BaseModel):
+    name: str
+
+class PayeeCreate(BaseModel):
+    name: str
 
 class CashUpdate(BaseModel):
     field: str
@@ -241,6 +248,43 @@ def get_invoices():
 def get_credit_cards():
     data = engine.get_all_credit_cards()
     return {"count": len(data), "data": data}
+
+# --- [카테고리 및 지급처 (Categories & Payees)] ---
+@app.get("/categories")
+def get_categories():
+    data = engine.get_categories()
+    return {"data": data}
+
+@app.post("/categories")
+def add_category(cat: CategoryCreate):
+    res = engine.add_category(cat.name)
+    if res["status"] == "success":
+        return res
+    raise HTTPException(status_code=400, detail=res.get("message", "Failed to add category"))
+
+@app.delete("/categories/{category_id}")
+def delete_category(category_id: int):
+    if engine.delete_category(category_id):
+        return {"status": "success"}
+    raise HTTPException(status_code=400, detail="Failed to delete category")
+
+@app.get("/payees")
+def get_payees():
+    data = engine.get_payees()
+    return {"data": data}
+
+@app.post("/payees")
+def add_payee(payee: PayeeCreate):
+    res = engine.add_payee(payee.name)
+    if res["status"] == "success":
+        return res
+    raise HTTPException(status_code=400, detail=res.get("message", "Failed to add payee"))
+
+@app.delete("/payees/{payee_id}")
+def delete_payee(payee_id: int):
+    if engine.delete_payee(payee_id):
+        return {"status": "success"}
+    raise HTTPException(status_code=400, detail="Failed to delete payee")
 
 # --- [장부 업데이트 로직] ---
 
