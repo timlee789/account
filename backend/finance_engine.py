@@ -270,7 +270,7 @@ class ExpenseEngine:
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             ''', (
-                record.get('date', datetime.today().strftime('%Y-%m-%d')),
+                record.get('date', datetime.now().strftime('%Y-%m-%d')),
                 record.get('type', 'Manual Entry'),
                 record.get('category', ''),
                 record.get('payee', ''),
@@ -311,7 +311,7 @@ class ExpenseEngine:
     def get_all_transactions(self):
         try:
             conn = self.get_conn()
-            df = pd.read_sql("SELECT * FROM transactions ORDER BY date DESC", conn)
+            df = pd.read_sql("SELECT * FROM transactions ORDER BY date DESC, id DESC", conn)
             conn.close()
             df = df.fillna("")
             return df.to_dict(orient='records')

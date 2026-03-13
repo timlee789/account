@@ -124,11 +124,13 @@ export default function Home() {
 
   const handleAddTransaction = async () => {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const dateObj = new Date();
+      // Ensure we get the local timezone date, not UTC which might be "tomorrow" or "yesterday"
+      const localDate = new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60000).toISOString().split('T')[0];
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions`, { 
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: today })
+        body: JSON.stringify({ date: localDate })
       });
       if (res.ok) fetchData();
     } catch (error) {
