@@ -181,9 +181,9 @@ def get_transactions():
         if date and val > 0:
             sales_cash_map[date] = val
             
-    # 해당 날짜 거래 내역이 아예 없는지 확인
-    existing_dates = set(t.get('date', '') for t in data)
-    missing_dates = set(sales_cash_map.keys()) - existing_dates
+    # 해당 날짜에 System 자동 생성된 Cash Sales 전용 행이 있는지 확인
+    existing_cash_sale_dates = set(t.get('date', '') for t in data if t.get('type') == 'Cash Sales' and t.get('account_source') == 'System')
+    missing_dates = set(sales_cash_map.keys()) - existing_cash_sale_dates
     has_inserted = False
     
     for d in missing_dates:
@@ -203,13 +203,12 @@ def get_transactions():
     if has_inserted:
         data = engine.get_all_transactions()
         
-    # 하루에 한 번만 cash_income이 보이도록 처리 (중복 방지)
-    processed_dates = set()
+    # Cash Sales 전용 행에만 cash_income 값을 바인딩하도록 강제 (중복 겹침 방지)
     for t in data:
         t_date = t.get('date')
-        if t_date in sales_cash_map and t_date not in processed_dates:
-            t['cash_income'] = sales_cash_map[t_date]
-            processed_dates.add(t_date)
+        if t.get('type') == 'Cash Sales' and t.get('account_source') == 'System':
+            t['cash_income'] = sales_cash_map.get(t_date, 0.0)
+            t['description'] = 'Daily Cash Income Record'
         else:
             t['cash_income'] = 0.0
             

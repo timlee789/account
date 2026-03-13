@@ -346,6 +346,9 @@ class ExpenseEngine:
     def _save_row(self, entry, table_name="transactions"):
         conn = self.get_conn()
         dup_key = f"{entry['date']}_{entry['desc']}_{entry['income']}_{entry['expense']}"
+        if entry.get('source') == 'System':
+            dup_key = f"system_cash_{entry['date']}_{datetime.now().timestamp()}"
+            
         cursor = conn.cursor()
         try:
             cursor.execute(f'''
@@ -372,7 +375,7 @@ class ExpenseEngine:
             ))
             conn.commit()
         except psycopg2.IntegrityError:
-            pass 
+            conn.rollback() 
         finally:
             cursor.close()
             conn.close()
