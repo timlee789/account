@@ -260,8 +260,8 @@ export default function Home() {
     }
   };
   return (
-    <main className="min-h-screen p-6 sm:p-8 bg-gray-900 w-full overflow-hidden">
-      <div className="max-w-[1600px] w-full mx-auto space-y-6">
+    <main className="min-h-screen p-4 sm:p-6 bg-gray-900 w-full overflow-hidden">
+      <div className="w-full mx-auto space-y-6">
 
         <Header onUpload={handleFileUpload} loading={loading} showUpload={activeTab !== 'cash'} />
 
