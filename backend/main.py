@@ -76,6 +76,23 @@ def get_dashboard(month: Optional[str] = None):
     trans = engine.get_all_transactions()
     cash_rcds = engine.get_all_cash_records()
     
+    # --- Lifetime Calculations (Before month filter) ---
+    lt_ledger_income = sum(float(t.get('income') or 0) for t in trans)
+    lt_sales_cash_income = sum(float(s.get('cash') or 0) + float(s.get('cash_tips') or 0) for s in sales)
+    lt_total_revenue = lt_ledger_income + lt_sales_cash_income
+
+    lt_ledger_expense = sum(float(t.get('amount') or t.get('expense') or 0) for t in trans if (float(t.get('amount') or 0) > 0 or float(t.get('expense') or 0) > 0))
+    lt_cash_records_expense = sum(float(c.get('expense') or 0) for c in cash_rcds)
+    lt_ledger_cash_expense = sum(float(t.get('cash_amount') or 0) for t in trans)
+    lt_total_expense = lt_ledger_expense + lt_cash_records_expense + lt_ledger_cash_expense
+    
+    lifetime_stats = {
+        "revenue": lt_total_revenue,
+        "expense": lt_total_expense,
+        "netProfit": lt_total_revenue - lt_total_expense
+    }
+    
+    # --- Monthly Filter ---
     if month:
         sales = [s for s in sales if str(s.get('date', '')).startswith(month)]
         trans = [t for t in trans if str(t.get('date', '')).startswith(month)]
@@ -92,10 +109,18 @@ def get_dashboard(month: Optional[str] = None):
     ledger_cash_expense = sum(float(t.get('cash_amount') or 0) for t in trans)
     total_expense = ledger_expense + cash_records_expense + ledger_cash_expense
     
-    # Calculate cash on hand (cash + cash_tips from sales - cash_amount from transactions)
+    # Calculate cash on hand (Cash Incomes - Cash Expenses)
+    # Cash Income: Sales Record (cash + cash_tips) + Cash Table (income)
     total_cash_sales = sum(float(s.get('cash') or 0) + float(s.get('cash_tips') or 0) for s in sales)
+    cash_records_income = sum(float(c.get('income') or 0) for c in cash_rcds)
+    total_cash_income = total_cash_sales + cash_records_income
+    
+    # Cash Expense: Ledger (cash_amount) + Cash Table (expense)
     total_cash_paid = sum(float(t.get('cash_amount') or 0) for t in trans)
-    current_cash = total_cash_sales - total_cash_paid
+    cash_records_exp = sum(float(c.get('expense') or 0) for c in cash_rcds)
+    total_cash_expense = total_cash_paid + cash_records_exp
+    
+    current_cash = total_cash_income - total_cash_expense
     
     # Calculate detailed sales breakdown
     sales_breakdown = {
@@ -108,12 +133,48 @@ def get_dashboard(month: Optional[str] = None):
         "cash_tips": sum(float(s.get('cash_tips') or 0) for s in sales),
     }
     
+    # ------------------
+    # 비용 추적 분석 로직
+    # ------------------
+    cat_exp_map = {}
+    payee_exp_map = {}
+    
+    # Transactions 분석 (Financial Ledger)
+    for t in trans:
+        expense_val = float(t.get('expense') or 0.0) + float(t.get('cash_amount') or 0.0)
+        c = str(t.get('category') or "").strip()
+        p = str(t.get('payee') or "").strip()
+        
+        if expense_val > 0:
+            if c: cat_exp_map[c] = cat_exp_map.get(c, 0.0) + expense_val
+            if p: payee_exp_map[p] = payee_exp_map.get(p, 0.0) + expense_val
+
+    # Cash Records 분석 (Cash Table)
+    for c_rcd in cash_rcds:
+        expense_val = float(c_rcd.get('expense') or 0.0)
+        c = str(c_rcd.get('category') or "").strip()
+        p = str(c_rcd.get('payee') or "").strip()
+        
+        if expense_val > 0:
+            if c: cat_exp_map[c] = cat_exp_map.get(c, 0.0) + expense_val
+            if p: payee_exp_map[p] = payee_exp_map.get(p, 0.0) + expense_val
+
+    # 리스트 형태로 매핑 및 정렬 (금액이 높은 순서대로)
+    category_expenses = [{"name": k, "amount": v} for k, v in cat_exp_map.items()]
+    category_expenses.sort(key=lambda x: x["amount"], reverse=True)
+    
+    payee_expenses = [{"name": k, "amount": v} for k, v in payee_exp_map.items()]
+    payee_expenses.sort(key=lambda x: x["amount"], reverse=True)
+    
     return {
         "totalRevenue": total_revenue,
         "totalExpense": total_expense,
         "netProfit": total_revenue - total_expense,
         "balance": current_cash,
-        "salesBreakdown": sales_breakdown
+        "salesBreakdown": sales_breakdown,
+        "categoryExpenses": category_expenses,
+        "payeeExpenses": payee_expenses,
+        "lifetimeStats": lifetime_stats
     }
 
 # --- [모델 정의] ---

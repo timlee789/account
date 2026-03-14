@@ -52,6 +52,21 @@ export default function Home() {
       cash_tips: 0,
     }
   });
+  const [lifetimeSummary, setLifetimeSummary] = useState({
+    totalRevenue: 0,
+    totalExpense: 0,
+    netProfit: 0,
+    balance: 0,
+    salesBreakdown: {
+      cash: 0,
+      debit: 0,
+      credit: 0,
+      doordash: 0,
+      stripe: 0,
+      tips: 0,
+      cash_tips: 0,
+    }
+  });
   const [salesRecords, setSalesRecords] = useState([]);
   const [creditCards, setCreditCards] = useState([]);
   const [cashRecords, setCashRecords] = useState([]);
@@ -78,6 +93,11 @@ export default function Home() {
         if (!checkAuth(res)) return;
         const data = await res.json();
         setDashboardSummary(data);
+
+        const lifetimeRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dashboard-summary`);
+        if (!checkAuth(lifetimeRes)) return;
+        const lifetimeData = await lifetimeRes.json();
+        setLifetimeSummary(lifetimeData);
       } else if (activeTab === 'ledger') {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions`);
         if (!checkAuth(res)) return;
@@ -345,11 +365,19 @@ export default function Home() {
         {/* 탭별 컨텐츠 렌더링 */}
         {/* Dashboard 탭: 별도의 요약 카드들을 보여줌 */}
         {activeTab === 'dashboard' && (
-          <Dashboard
-            summary={dashboardSummary}
-            selectedMonth={selectedMonth}
-            onMonthChange={setSelectedMonth}
-          />
+          <div className="space-y-16">
+            <Dashboard
+              summary={dashboardSummary}
+              selectedMonth={selectedMonth}
+              onMonthChange={setSelectedMonth}
+            />
+            <div className="border-t-2 border-gray-700/50 pt-16">
+              <Dashboard
+                summary={lifetimeSummary}
+                isLifetime={true}
+              />
+            </div>
+          </div>
         )}
 
         {/* Ledger 탭: 기존 테이블만 표시 */}
