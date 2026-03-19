@@ -14,7 +14,7 @@ interface DashboardSummary {
     tips: number;
     cash_tips: number;
   };
-  categoryExpenses?: { name: string; amount: number }[];
+  categoryExpenses?: { name: string; amount: number; budget?: number }[];
   payeeExpenses?: { name: string; amount: number }[];
   lifetimeStats?: {
     revenue: number;
@@ -35,6 +35,20 @@ export default function Dashboard({ summary, selectedMonth, onMonthChange, isLif
 
   const maxCategoryAmount = Math.max(...categoryExpenses.map(c => c.amount), 1);
   const maxPayeeAmount = Math.max(...payeeExpenses.map(p => p.amount), 1);
+
+  const handleBudgetChange = async (category: string, val: string) => {
+    if (isLifetime || !selectedMonth) return;
+    const num = parseFloat(val.replace(/[^0-9.]/g, '')) || 0;
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/budgets`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ month: selectedMonth, category, amount: num })
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   return (
     <div className="mx-auto space-y-8 animate-in fade-in duration-500" style={{ paddingLeft: '400px', paddingRight: '400px' }}>
@@ -196,9 +210,30 @@ export default function Dashboard({ summary, selectedMonth, onMonthChange, isLif
                 const percentage = Math.max(2, (cat.amount / maxCategoryAmount) * 100);
                 return (
                   <div key={`cat-${idx}`} className="group relative">
-                    <div className="flex justify-between items-baseline mb-1 px-2">
-                      <span className="text-gray-200 font-semibold truncate pr-4 text-sm text-center flex-1">{cat.name || "Uncategorized"}</span>
-                      <span className="text-orange-300 font-bold shrink-0 text-sm">${cat.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <div className="grid grid-cols-3 items-center mb-1 px-2 gap-2">
+                       <span className="text-gray-200 font-semibold truncate text-sm text-left">{cat.name || "Uncategorized"}</span>
+                       
+                       <div className="flex justify-center">
+                         {!isLifetime && (
+                           <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                             <span className="text-[10px] text-indigo-400 uppercase font-black tracking-wider">BGT:</span>
+                             <span className="text-indigo-300 font-bold text-sm">$</span>
+                             <input
+                               type="text"
+                               inputMode="decimal"
+                               defaultValue={cat.budget || ""}
+                               className="bg-gray-800/80 w-16 text-right px-1 rounded border border-gray-600 focus:border-indigo-400 focus:bg-gray-900 focus:outline-none text-indigo-200 text-sm font-bold transition-all"
+                               placeholder="0.00"
+                               onBlur={(e) => handleBudgetChange(cat.name, e.target.value)}
+                               onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                             />
+                           </div>
+                         )}
+                       </div>
+                       
+                       <div className="text-right">
+                         <span className="text-orange-300 font-bold text-sm">${cat.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                       </div>
                     </div>
                     <div className="h-3 w-full bg-gray-800/80 rounded-full overflow-hidden border border-gray-700/30">
                       <div 
@@ -209,6 +244,25 @@ export default function Dashboard({ summary, selectedMonth, onMonthChange, isLif
                   </div>
                 );
               })}
+            </div>
+            
+            {/* Category Total Row */}
+            <div className="mt-6 pt-4 border-t-2 border-dashed border-gray-700/50 grid grid-cols-3 items-center px-4 bg-gray-800/20 rounded-xl py-3 shadow-inner">
+               <span className="text-gray-400 font-black uppercase tracking-widest text-xs text-left">Total</span>
+               
+               <div className="flex justify-center">
+                 {!isLifetime && (
+                   <div className="text-center">
+                     <span className="text-[10px] text-indigo-400/80 block uppercase font-black tracking-wider mb-0.5">Total Budget</span>
+                     <span className="text-indigo-300 font-black text-lg">${categoryExpenses.reduce((sum, c) => sum + (c.budget || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                   </div>
+                 )}
+               </div>
+               
+               <div className="text-right">
+                 <span className="text-[10px] text-orange-400/80 block uppercase font-black tracking-wider mb-0.5">Total Actual</span>
+                 <span className="text-orange-300 font-black text-lg">${categoryExpenses.reduce((sum, c) => sum + c.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+               </div>
             </div>
           </div>
         )}
@@ -231,8 +285,10 @@ export default function Dashboard({ summary, selectedMonth, onMonthChange, isLif
                 return (
                   <div key={`payee-${idx}`} className="group relative">
                     <div className="flex justify-between items-baseline mb-1 px-2">
-                      <span className="text-gray-200 font-semibold truncate pr-4 text-sm text-center flex-1">{payee.name || "Unknown"}</span>
-                      <span className="text-rose-300 font-bold shrink-0 text-sm">${payee.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      <span className="text-gray-200 font-semibold truncate pr-4 text-sm text-left flex-1">{payee.name || "Unknown"}</span>
+                      <div className="text-right w-20 shrink-0">
+                        <span className="text-rose-300 font-bold shrink-0 text-sm">${payee.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      </div>
                     </div>
                     <div className="h-3 w-full bg-gray-800/80 rounded-full overflow-hidden border border-gray-700/30">
                       <div 
@@ -243,6 +299,15 @@ export default function Dashboard({ summary, selectedMonth, onMonthChange, isLif
                   </div>
                 );
               })}
+            </div>
+            
+            {/* Payee Total Row */}
+            <div className="mt-6 pt-4 border-t-2 border-dashed border-gray-700/50 flex justify-between items-center px-4 bg-gray-800/20 rounded-xl py-3 shadow-inner">
+               <span className="text-gray-400 font-black uppercase tracking-widest text-xs">Total</span>
+               <div className="text-right">
+                 <span className="text-[10px] text-rose-400/80 block uppercase font-black tracking-wider mb-0.5">Total Actual</span>
+                 <span className="text-rose-300 font-black text-lg">${payeeExpenses.reduce((sum, p) => sum + p.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+               </div>
             </div>
           </div>
         )}

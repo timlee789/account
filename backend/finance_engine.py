@@ -23,6 +23,20 @@ class ExpenseEngine:
             
         self.create_tables()
 
+    def normalize_date(self, d_str: str) -> str:
+        if not d_str:
+            return ""
+        try:
+            d_str = str(d_str).strip()
+            # If already YYYY-MM-DD, return right away
+            if re.match(r'^\d{4}-\d{2}-\d{2}$', d_str):
+                return d_str
+            # Let pandas parse various formats and convert to ISO format
+            parsed = pd.to_datetime(d_str)
+            return parsed.strftime('%Y-%m-%d')
+        except:
+            return str(d_str)
+
     def get_conn(self):
         return psycopg2.connect(self.db_url)
 
@@ -131,6 +145,17 @@ class ExpenseEngine:
             CREATE TABLE IF NOT EXISTS payees (
                 id SERIAL PRIMARY KEY,
                 name TEXT UNIQUE NOT NULL
+            )
+        ''')
+        
+        # 8. Category Budgets Table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS category_budgets (
+                id SERIAL PRIMARY KEY,
+                month TEXT NOT NULL,
+                category TEXT NOT NULL,
+                amount REAL NOT NULL DEFAULT 0,
+                UNIQUE(month, category)
             )
         ''')
         conn.commit()
@@ -258,6 +283,7 @@ class ExpenseEngine:
 
     def update_sales_record(self, date, field, value):
         """특정 날짜의 매출 데이터를 업데이트하고 Total을 자동 계산합니다."""
+        date = self.normalize_date(date)
         conn = self.get_conn()
         cursor = conn.cursor()
         try:
@@ -345,9 +371,11 @@ class ExpenseEngine:
 
     def _save_row(self, entry, table_name="transactions"):
         conn = self.get_conn()
-        dup_key = f"{entry['date']}_{entry['desc']}_{entry['income']}_{entry['expense']}"
+        norm_date = self.normalize_date(entry['date'])
+        
+        dup_key = f"{norm_date}_{entry['desc']}_{entry['income']}_{entry['expense']}"
         if entry.get('source') == 'System':
-            dup_key = f"system_cash_{entry['date']}_{datetime.now().timestamp()}"
+            dup_key = f"system_cash_{norm_date}_{datetime.now().timestamp()}"
             
         cursor = conn.cursor()
         try:
@@ -359,7 +387,7 @@ class ExpenseEngine:
                 )
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''', (
-                entry['date'], 
+                norm_date, 
                 entry['type'], 
                 "",      
                 "",      
@@ -384,6 +412,7 @@ class ExpenseEngine:
     def add_transaction(self, record: dict):
         conn = self.get_conn()
         cursor = conn.cursor()
+        norm_date = self.normalize_date(record.get('date', datetime.now().strftime('%Y-%m-%d')))
         try:
             cursor.execute('''
                 INSERT INTO transactions (
@@ -394,7 +423,7 @@ class ExpenseEngine:
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             ''', (
-                record.get('date', datetime.now().strftime('%Y-%m-%d')),
+                norm_date,
                 record.get('type', 'Manual Entry'),
                 record.get('category', ''),
                 record.get('payee', ''),
@@ -561,13 +590,14 @@ class ExpenseEngine:
     def add_cash_record(self, record: dict):
         conn = self.get_conn()
         cursor = conn.cursor()
+        norm_date = self.normalize_date(record.get('date', ''))
         try:
             cursor.execute('''
                 INSERT INTO cash_records (date, category, payee, income, expense, balance, description)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             ''', (
-                record.get('date', ''),
+                norm_date,
                 record.get('category', ''),
                 record.get('payee', ''),
                 float(record.get('income', 0) or 0),
@@ -598,6 +628,8 @@ class ExpenseEngine:
                     value = float(value)
                 except ValueError:
                     value = 0.0
+            elif field == 'date':
+                value = self.normalize_date(value)
 
             cursor.execute(f"UPDATE cash_records SET {field} = %s WHERE id = %s", (value, record_id))
             conn.commit()
@@ -618,6 +650,35 @@ class ExpenseEngine:
             return True
         except Exception as e:
             print(f"Failed to delete cash record: {e}")
+            return False
+        finally:
+            cursor.close()
+            conn.close()
+
+    def get_monthly_budgets(self, month: str):
+        try:
+            conn = self.get_conn()
+            df = pd.read_sql("SELECT category, amount FROM category_budgets WHERE month = %s", conn, params=(month,))
+            conn.close()
+            return dict(zip(df['category'], df['amount']))
+        except Exception as e:
+            print(f"Failed to load budgets: {e}")
+            return {}
+
+    def update_budget(self, month: str, category: str, amount: float):
+        conn = self.get_conn()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                INSERT INTO category_budgets (month, category, amount)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (month, category) 
+                DO UPDATE SET amount = EXCLUDED.amount
+            ''', (month, category, amount))
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"Failed to update budget: {e}")
             return False
         finally:
             cursor.close()

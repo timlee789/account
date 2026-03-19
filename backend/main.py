@@ -78,18 +78,19 @@ def get_dashboard(month: Optional[str] = None):
     
     # --- Lifetime Calculations (Before month filter) ---
     lt_ledger_income = sum(float(t.get('income') or 0) for t in trans)
-    lt_sales_cash_income = sum(float(s.get('cash') or 0) + float(s.get('cash_tips') or 0) for s in sales)
-    lt_total_revenue = lt_ledger_income + lt_sales_cash_income
-
     lt_ledger_expense = sum(float(t.get('amount') or t.get('expense') or 0) for t in trans if (float(t.get('amount') or 0) > 0 or float(t.get('expense') or 0) > 0))
-    lt_cash_records_expense = sum(float(c.get('expense') or 0) for c in cash_rcds)
-    lt_ledger_cash_expense = sum(float(t.get('cash_amount') or 0) for t in trans)
-    lt_total_expense = lt_ledger_expense + lt_cash_records_expense + lt_ledger_cash_expense
+    
+    lt_cash_income = sum(float(s.get('cash') or 0) + float(s.get('cash_tips') or 0) for s in sales) + sum(float(c.get('income') or 0) for c in cash_rcds)
+    lt_cash_expense = sum(float(t.get('cash_amount') or 0) for t in trans) + sum(float(c.get('expense') or 0) for c in cash_rcds)
+    
+    lt_total_revenue = lt_ledger_income + lt_cash_income
+    lt_total_expense = lt_ledger_expense + lt_cash_expense
+    lt_net_profit = lt_total_revenue - lt_total_expense
     
     lifetime_stats = {
         "revenue": lt_total_revenue,
         "expense": lt_total_expense,
-        "netProfit": lt_total_revenue - lt_total_expense
+        "netProfit": lt_net_profit
     }
     
     # --- Monthly Filter ---
@@ -98,29 +99,17 @@ def get_dashboard(month: Optional[str] = None):
         trans = [t for t in trans if str(t.get('date', '')).startswith(month)]
         cash_rcds = [c for c in cash_rcds if str(c.get('date', '')).startswith(month)]
     
-    # 수익 합계 = Financial Ledger (transactions)의 income 합계 + Sales Record의 현금 매출 (Cash Income)
+    # --- Monthly Calculations ---
     ledger_income = sum(float(t.get('income') or 0) for t in trans)
-    sales_cash_income = sum(float(s.get('cash') or 0) + float(s.get('cash_tips') or 0) for s in sales)
-    total_revenue = ledger_income + sales_cash_income
-    
-    # 지출 합계 = Ledger(transactions)의 expense + Cash records의 expense + Ledger의 cash_amount (Cash Expense)
     ledger_expense = sum(float(t.get('amount') or t.get('expense') or 0) for t in trans if (float(t.get('amount') or 0) > 0 or float(t.get('expense') or 0) > 0))
-    cash_records_expense = sum(float(c.get('expense') or 0) for c in cash_rcds)
-    ledger_cash_expense = sum(float(t.get('cash_amount') or 0) for t in trans)
-    total_expense = ledger_expense + cash_records_expense + ledger_cash_expense
     
-    # Calculate cash on hand (Cash Incomes - Cash Expenses)
-    # Cash Income: Sales Record (cash + cash_tips) + Cash Table (income)
-    total_cash_sales = sum(float(s.get('cash') or 0) + float(s.get('cash_tips') or 0) for s in sales)
-    cash_records_income = sum(float(c.get('income') or 0) for c in cash_rcds)
-    total_cash_income = total_cash_sales + cash_records_income
+    cash_income = sum(float(s.get('cash') or 0) + float(s.get('cash_tips') or 0) for s in sales) + sum(float(c.get('income') or 0) for c in cash_rcds)
+    cash_expense = sum(float(t.get('cash_amount') or 0) for t in trans) + sum(float(c.get('expense') or 0) for c in cash_rcds)
     
-    # Cash Expense: Ledger (cash_amount) + Cash Table (expense)
-    total_cash_paid = sum(float(t.get('cash_amount') or 0) for t in trans)
-    cash_records_exp = sum(float(c.get('expense') or 0) for c in cash_rcds)
-    total_cash_expense = total_cash_paid + cash_records_exp
-    
-    current_cash = total_cash_income - total_cash_expense
+    total_revenue = ledger_income + cash_income
+    total_expense = ledger_expense + cash_expense
+    net_profit = total_revenue - total_expense
+    current_cash = cash_income - cash_expense
     
     # Calculate detailed sales breakdown
     sales_breakdown = {
@@ -136,7 +125,9 @@ def get_dashboard(month: Optional[str] = None):
     # ------------------
     # 비용 추적 분석 로직
     # ------------------
-    cat_exp_map = {}
+    # 모든 카테고리를 기본적으로 0으로 셋팅하여, 지출이 없어도 예산 입력을 위해 항상 보이게 함
+    all_cats = engine.get_categories()
+    cat_exp_map = {c['name']: 0.0 for c in all_cats} if all_cats else {}
     payee_exp_map = {}
     
     # Transactions 분석 (Financial Ledger)
@@ -159,9 +150,14 @@ def get_dashboard(month: Optional[str] = None):
             if c: cat_exp_map[c] = cat_exp_map.get(c, 0.0) + expense_val
             if p: payee_exp_map[p] = payee_exp_map.get(p, 0.0) + expense_val
 
+    # 예산(Budget) 데이터 조회 (선택된 달이 있을 때만)
+    budgets = engine.get_monthly_budgets(month) if month else {}
+
     # 리스트 형태로 매핑 및 정렬 (금액이 높은 순서대로)
-    category_expenses = [{"name": k, "amount": v} for k, v in cat_exp_map.items()]
-    category_expenses.sort(key=lambda x: x["amount"], reverse=True)
+    # 카테고리는 지출이 0이거나 예산이 설정된 라인만 표시하길 원할 수 있으나, 우선 0이라도 모두 표시함
+    category_expenses = [{"name": k, "amount": v, "budget": budgets.get(k, 0)} for k, v in cat_exp_map.items()]
+    # 지출액이 같으면 이름순, 지출액 다르면 지출 순
+    category_expenses.sort(key=lambda x: (-x["amount"], x["name"]))
     
     payee_expenses = [{"name": k, "amount": v} for k, v in payee_exp_map.items()]
     payee_expenses.sort(key=lambda x: x["amount"], reverse=True)
@@ -169,7 +165,7 @@ def get_dashboard(month: Optional[str] = None):
     return {
         "totalRevenue": total_revenue,
         "totalExpense": total_expense,
-        "netProfit": total_revenue - total_expense,
+        "netProfit": net_profit,
         "balance": current_cash,
         "salesBreakdown": sales_breakdown,
         "categoryExpenses": category_expenses,
@@ -178,6 +174,19 @@ def get_dashboard(month: Optional[str] = None):
     }
 
 # --- [모델 정의] ---
+
+class BudgetUpdate(BaseModel):
+    month: str
+    category: str
+    amount: float
+
+@app.post("/budgets")
+def update_category_budget(data: BudgetUpdate):
+    success = engine.update_budget(data.month, data.category, data.amount)
+    if success:
+        return {"status": "success"}
+    else:
+        raise HTTPException(status_code=400, detail="Failed to update budget")
 
 # 장부 거래 업데이트용
 class TransactionUpdate(BaseModel):
