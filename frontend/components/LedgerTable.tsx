@@ -203,7 +203,7 @@ export default function LedgerTable({ transactions, categories = [], payees = []
                         'bg-gray-700 text-gray-300'}`}>
                     {t.account_source}
                   </span>
-                  {t.account_source === 'Manual' && onDelete && (
+                  {onDelete && (
                     <button 
                       onClick={() => onDelete(t.id)}
                       className="text-white font-bold text-[10px] ml-2 px-2 py-1 bg-rose-600 rounded hover:bg-rose-500 transition-all shadow-sm"

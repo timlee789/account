@@ -365,13 +365,13 @@ export default function Home() {
         {/* 탭별 컨텐츠 렌더링 */}
         {/* Dashboard 탭: 별도의 요약 카드들을 보여줌 */}
         {activeTab === 'dashboard' && (
-          <div className="space-y-16">
+          <div className="space-y-10">
             <Dashboard
               summary={dashboardSummary}
               selectedMonth={selectedMonth}
               onMonthChange={setSelectedMonth}
             />
-            <div className="border-t-2 border-gray-700/50 pt-16">
+            <div className="border-t-2 border-gray-700/50 pt-10">
               <Dashboard
                 summary={lifetimeSummary}
                 isLifetime={true}
