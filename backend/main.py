@@ -86,11 +86,15 @@ def get_dashboard(month: Optional[str] = None):
     lt_total_revenue = lt_ledger_income + lt_cash_income
     lt_total_expense = lt_ledger_expense + lt_cash_expense
     lt_net_profit = lt_total_revenue - lt_total_expense
+    lt_total_sales = sum(float(s.get('cash') or 0) + float(s.get('debit') or 0) + float(s.get('credit') or 0) + float(s.get('doordash') or 0) + float(s.get('stripe') or 0) + float(s.get('tips') or 0) + float(s.get('cash_tips') or 0) for s in sales)
+    lt_net_profit_sales = lt_total_sales - lt_total_expense
     
     lifetime_stats = {
         "revenue": lt_total_revenue,
         "expense": lt_total_expense,
-        "netProfit": lt_net_profit
+        "netProfit": lt_net_profit,
+        "totalSales": lt_total_sales,
+        "netProfitSales": lt_net_profit_sales
     }
     
     # --- Monthly Filter ---
@@ -121,6 +125,9 @@ def get_dashboard(month: Optional[str] = None):
         "tips": sum(float(s.get('tips') or 0) for s in sales),
         "cash_tips": sum(float(s.get('cash_tips') or 0) for s in sales),
     }
+    
+    total_sales = sum(sales_breakdown.values())
+    net_profit_sales = total_sales - total_expense
     
     # ------------------
     # 비용 추적 분석 로직
@@ -166,6 +173,8 @@ def get_dashboard(month: Optional[str] = None):
         "totalRevenue": total_revenue,
         "totalExpense": total_expense,
         "netProfit": net_profit,
+        "totalSales": total_sales,
+        "netProfitSales": net_profit_sales,
         "balance": current_cash,
         "salesBreakdown": sales_breakdown,
         "categoryExpenses": category_expenses,

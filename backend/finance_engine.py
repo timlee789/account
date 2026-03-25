@@ -298,7 +298,7 @@ class ExpenseEngine:
             cursor.execute('''
             UPDATE sales_records SET total = 
                 COALESCE(cash, 0) + COALESCE(debit, 0) + COALESCE(credit, 0) + 
-                COALESCE(cash_tips, 0) + COALESCE(doordash, 0) + COALESCE(stripe, 0)
+                COALESCE(cash_tips, 0) + COALESCE(doordash, 0) + COALESCE(stripe, 0) + COALESCE(tips, 0)
             WHERE date = %s
         ''', (date,))
             

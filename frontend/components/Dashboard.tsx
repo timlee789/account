@@ -4,6 +4,8 @@ interface DashboardSummary {
   totalRevenue: number;
   totalExpense: number;
   netProfit: number;
+  totalSales?: number;
+  netProfitSales?: number;
   balance: number;
   salesBreakdown?: {
     cash: number;
@@ -20,6 +22,8 @@ interface DashboardSummary {
     revenue: number;
     expense: number;
     netProfit: number;
+    totalSales?: number;
+    netProfitSales?: number;
   };
 }
 
@@ -33,7 +37,7 @@ interface Props {
 const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2 });
 
 export default function Dashboard({ summary, selectedMonth, onMonthChange, isLifetime }: Props) {
-  const { totalRevenue, totalExpense, netProfit, balance, salesBreakdown, categoryExpenses = [], payeeExpenses = [] } = summary;
+  const { totalRevenue, totalExpense, netProfit, totalSales = 0, netProfitSales = 0, balance, salesBreakdown, categoryExpenses = [], payeeExpenses = [] } = summary;
 
   const maxCategoryAmount = Math.max(...categoryExpenses.map(c => c.amount), 1);
   const maxPayeeAmount = Math.max(...payeeExpenses.map(p => p.amount), 1);
@@ -91,41 +95,63 @@ export default function Dashboard({ summary, selectedMonth, onMonthChange, isLif
       </div>
 
       {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Revenue */}
-        <div className="relative overflow-hidden bg-gray-800/60 rounded-2xl border border-emerald-800/40 hover:border-emerald-500/60 px-6 py-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(16,185,129,0.15)] text-center group">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/5 rounded-full -translate-y-6 translate-x-6 group-hover:bg-emerald-500/10 transition-all"></div>
-          <p className="text-emerald-400 text-[11px] font-black uppercase tracking-widest mb-2">Total Revenue</p>
-          <p className="text-2xl font-black text-white">${fmt(totalRevenue)}</p>
-          <div className="mt-3 h-1 w-full bg-gray-700 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full" style={{ width: `${revenueRatio}%` }}></div>
+      <div className="flex flex-col gap-4">
+        {/* Row 1 */}
+        <div className="grid grid-cols-3 gap-3 md:gap-4">
+          {/* Revenue */}
+          <div className="relative overflow-hidden bg-gray-800/60 rounded-2xl border border-emerald-800/40 hover:border-emerald-500/60 px-3 sm:px-5 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(16,185,129,0.15)] text-center group">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-full -translate-y-4 translate-x-4 group-hover:bg-emerald-500/10 transition-all"></div>
+            <p className="text-emerald-400 text-[9px] sm:text-[11px] font-black uppercase tracking-widest mb-2 leading-tight">Total Revenue</p>
+            <p className="text-xl sm:text-2xl font-black text-white">${fmt(totalRevenue)}</p>
+            <div className="mt-3 h-1 w-full bg-gray-700 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full" style={{ width: `${revenueRatio}%` }}></div>
+            </div>
+          </div>
+
+          {/* Total Sales */}
+          <div className="relative overflow-hidden bg-gray-800/60 rounded-2xl border border-cyan-800/40 hover:border-cyan-500/60 px-3 sm:px-5 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(6,182,212,0.15)] text-center group">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-cyan-500/5 rounded-full -translate-y-4 translate-x-4 group-hover:bg-cyan-500/10 transition-all"></div>
+            <p className="text-cyan-400 text-[9px] sm:text-[11px] font-black uppercase tracking-widest mb-2 leading-tight">Total Sales</p>
+            <p className="text-xl sm:text-2xl font-black text-white">${fmt(totalSales)}</p>
+            <p className="text-cyan-400/70 text-[9px] sm:text-[10px] mt-3 font-semibold leading-tight">POS & Kiosk</p>
+          </div>
+
+          {/* Expense */}
+          <div className="relative overflow-hidden bg-gray-800/60 rounded-2xl border border-rose-800/40 hover:border-rose-500/60 px-3 sm:px-5 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(244,63,94,0.15)] text-center group">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-rose-500/5 rounded-full -translate-y-4 translate-x-4 group-hover:bg-rose-500/10 transition-all"></div>
+            <p className="text-rose-400 text-[9px] sm:text-[11px] font-black uppercase tracking-widest mb-2 leading-tight">Total Expense</p>
+            <p className="text-xl sm:text-2xl font-black text-rose-200">${fmt(totalExpense)}</p>
+            <div className="mt-3 h-1 w-full bg-gray-700 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-rose-600 to-rose-400 rounded-full" style={{ width: `${100 - revenueRatio}%` }}></div>
+            </div>
           </div>
         </div>
 
-        {/* Expense */}
-        <div className="relative overflow-hidden bg-gray-800/60 rounded-2xl border border-rose-800/40 hover:border-rose-500/60 px-6 py-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(244,63,94,0.15)] text-center group">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-rose-500/5 rounded-full -translate-y-6 translate-x-6 group-hover:bg-rose-500/10 transition-all"></div>
-          <p className="text-rose-400 text-[11px] font-black uppercase tracking-widest mb-2">Total Expense</p>
-          <p className="text-2xl font-black text-rose-200">${fmt(totalExpense)}</p>
-          <div className="mt-3 h-1 w-full bg-gray-700 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-rose-600 to-rose-400 rounded-full" style={{ width: `${100 - revenueRatio}%` }}></div>
+        {/* Row 2 */}
+        <div className="grid grid-cols-3 gap-3 md:gap-4">
+          {/* Net Profit (Revenue) */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-indigo-900/50 to-purple-900/50 rounded-2xl border border-indigo-700/50 hover:border-indigo-400/70 px-2 sm:px-4 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(99,102,241,0.2)] text-center group flex flex-col items-center justify-between">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-400/5 rounded-full -translate-y-4 translate-x-4 group-hover:bg-indigo-400/10 transition-all"></div>
+            <p className="text-indigo-300 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-2 leading-tight">Net Profit (Rev)</p>
+            <p className={`text-xl sm:text-2xl font-black ${netProfit >= 0 ? 'text-white' : 'text-rose-400'}`}>${fmt(netProfit)}</p>
+            <p className="text-indigo-400/70 text-[9px] sm:text-[10px] mt-3 font-semibold leading-tight">Take Home <br/>(Ledger+Cash)</p>
           </div>
-        </div>
 
-        {/* Net Profit */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-indigo-900/50 to-purple-900/50 rounded-2xl border border-indigo-700/50 hover:border-indigo-400/70 px-6 py-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(99,102,241,0.2)] text-center group">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-400/5 rounded-full -translate-y-6 translate-x-6 group-hover:bg-indigo-400/10 transition-all"></div>
-          <p className="text-indigo-300 text-[11px] font-black uppercase tracking-widest mb-2">Net Profit</p>
-          <p className={`text-2xl font-black ${netProfit >= 0 ? 'text-white' : 'text-rose-400'}`}>${fmt(netProfit)}</p>
-          <p className="text-indigo-400/70 text-[10px] mt-3 font-semibold">Take Home</p>
-        </div>
+          {/* Net Profit (Sales) */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-violet-900/50 to-fuchsia-900/50 rounded-2xl border border-violet-700/50 hover:border-violet-400/70 px-2 sm:px-4 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(139,92,246,0.2)] text-center group flex flex-col items-center justify-between">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-violet-400/5 rounded-full -translate-y-4 translate-x-4 group-hover:bg-violet-400/10 transition-all"></div>
+            <p className="text-violet-300 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-2 leading-tight">Net Profit (Sales)</p>
+            <p className={`text-xl sm:text-2xl font-black ${netProfitSales >= 0 ? 'text-white' : 'text-rose-400'}`}>${fmt(netProfitSales)}</p>
+            <p className="text-violet-400/70 text-[9px] sm:text-[10px] mt-3 font-semibold leading-tight">Take Home <br/>(Sales Only)</p>
+          </div>
 
-        {/* Cash on Hand */}
-        <div className="relative overflow-hidden bg-gray-800/60 rounded-2xl border border-amber-800/40 hover:border-amber-500/60 px-6 py-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(245,158,11,0.15)] text-center group">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-amber-500/5 rounded-full -translate-y-6 translate-x-6 group-hover:bg-amber-500/10 transition-all"></div>
-          <p className="text-amber-400 text-[11px] font-black uppercase tracking-widest mb-2">Cash on Hand</p>
-          <p className="text-2xl font-black text-white">${fmt(balance)}</p>
-          <p className="text-amber-400/70 text-[10px] mt-3 font-semibold">Estimated Balance</p>
+          {/* Cash on Hand */}
+          <div className="relative overflow-hidden bg-gray-800/60 rounded-2xl border border-amber-800/40 hover:border-amber-500/60 px-3 sm:px-5 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(245,158,11,0.15)] text-center group flex flex-col items-center justify-between">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/5 rounded-full -translate-y-4 translate-x-4 group-hover:bg-amber-500/10 transition-all"></div>
+            <p className="text-amber-400 text-[9px] sm:text-[11px] font-black uppercase tracking-widest mb-2 leading-tight">Cash on Hand</p>
+            <p className="text-xl sm:text-2xl font-black text-white">${fmt(balance)}</p>
+            <p className="text-amber-400/70 text-[9px] sm:text-[10px] mt-3 font-semibold leading-tight">Estimated Balance</p>
+          </div>
         </div>
       </div>
 

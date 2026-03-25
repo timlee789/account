@@ -41,6 +41,8 @@ export default function Home() {
     totalRevenue: 0,
     totalExpense: 0,
     netProfit: 0,
+    totalSales: 0,
+    netProfitSales: 0,
     balance: 0,
     salesBreakdown: {
       cash: 0,
@@ -56,6 +58,8 @@ export default function Home() {
     totalRevenue: 0,
     totalExpense: 0,
     netProfit: 0,
+    totalSales: 0,
+    netProfitSales: 0,
     balance: 0,
     salesBreakdown: {
       cash: 0,
