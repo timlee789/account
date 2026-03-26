@@ -95,6 +95,7 @@ class ExpenseEngine:
             doordash REAL DEFAULT 0,
             stripe REAL DEFAULT 0,
             total REAL DEFAULT 0,
+            deposit REAL DEFAULT 0,
             memo TEXT
         )
     ''')
@@ -158,6 +159,13 @@ class ExpenseEngine:
                 UNIQUE(month, category)
             )
         ''')
+        
+        # Add deposit column if missing
+        try:
+            cursor.execute("ALTER TABLE sales_records ADD COLUMN IF NOT EXISTS deposit REAL DEFAULT 0")
+        except Exception as e:
+            conn.rollback()
+
         conn.commit()
         
         # --- Seed Initial Data if empty ---
@@ -298,7 +306,7 @@ class ExpenseEngine:
             cursor.execute('''
             UPDATE sales_records SET total = 
                 COALESCE(cash, 0) + COALESCE(debit, 0) + COALESCE(credit, 0) + 
-                COALESCE(cash_tips, 0) + COALESCE(doordash, 0) + COALESCE(stripe, 0) + COALESCE(tips, 0)
+                COALESCE(cash_tips, 0) + COALESCE(doordash, 0)
             WHERE date = %s
         ''', (date,))
             

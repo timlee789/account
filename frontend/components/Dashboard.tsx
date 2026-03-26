@@ -3,6 +3,7 @@
 interface DashboardSummary {
   totalRevenue: number;
   totalExpense: number;
+  realExpense: number;
   netProfit: number;
   totalSales?: number;
   netProfitSales?: number;
@@ -21,6 +22,7 @@ interface DashboardSummary {
   lifetimeStats?: {
     revenue: number;
     expense: number;
+    realExpense?: number;
     netProfit: number;
     totalSales?: number;
     netProfitSales?: number;
@@ -37,7 +39,7 @@ interface Props {
 const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2 });
 
 export default function Dashboard({ summary, selectedMonth, onMonthChange, isLifetime }: Props) {
-  const { totalRevenue, totalExpense, netProfit, totalSales = 0, netProfitSales = 0, balance, salesBreakdown, categoryExpenses = [], payeeExpenses = [] } = summary;
+  const { totalRevenue, totalExpense, realExpense = 0, netProfit, totalSales = 0, netProfitSales = 0, balance, salesBreakdown, categoryExpenses = [], payeeExpenses = [] } = summary;
 
   const maxCategoryAmount = Math.max(...categoryExpenses.map(c => c.amount), 1);
   const maxPayeeAmount = Math.max(...payeeExpenses.map(p => p.amount), 1);
@@ -97,7 +99,7 @@ export default function Dashboard({ summary, selectedMonth, onMonthChange, isLif
       {/* ── KPI Cards ── */}
       <div className="flex flex-col gap-4">
         {/* Row 1 */}
-        <div className="grid grid-cols-3 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
           {/* Revenue */}
           <div className="relative overflow-hidden bg-gray-800/60 rounded-2xl border border-emerald-800/40 hover:border-emerald-500/60 px-3 sm:px-5 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(16,185,129,0.15)] text-center group">
             <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-full -translate-y-4 translate-x-4 group-hover:bg-emerald-500/10 transition-all"></div>
@@ -124,6 +126,14 @@ export default function Dashboard({ summary, selectedMonth, onMonthChange, isLif
             <div className="mt-3 h-1 w-full bg-gray-700 rounded-full overflow-hidden">
               <div className="h-full bg-gradient-to-r from-rose-600 to-rose-400 rounded-full" style={{ width: `${100 - revenueRatio}%` }}></div>
             </div>
+          </div>
+
+          {/* Real Expense */}
+          <div className="relative overflow-hidden bg-gray-800/60 rounded-2xl border border-fuchsia-800/40 hover:border-fuchsia-500/60 px-3 sm:px-5 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(217,70,239,0.15)] text-center group">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-fuchsia-500/5 rounded-full -translate-y-4 translate-x-4 group-hover:bg-fuchsia-500/10 transition-all"></div>
+            <p className="text-fuchsia-400 text-[9px] sm:text-[11px] font-black uppercase tracking-widest mb-2 leading-tight">Real Expense</p>
+            <p className="text-xl sm:text-2xl font-black text-white">${fmt(realExpense)}</p>
+            <p className="text-fuchsia-400/70 text-[9px] sm:text-[10px] mt-3 font-semibold leading-tight">W/O Card Pmt</p>
           </div>
         </div>
 

@@ -75,6 +75,7 @@ def get_dashboard(month: Optional[str] = None):
     sales = engine.get_sales_records()
     trans = engine.get_all_transactions()
     cash_rcds = engine.get_all_cash_records()
+    credit_cards = engine.get_all_credit_cards()
     
     # --- Lifetime Calculations (Before month filter) ---
     lt_ledger_income = sum(float(t.get('income') or 0) for t in trans)
@@ -83,15 +84,21 @@ def get_dashboard(month: Optional[str] = None):
     lt_cash_income = sum(float(s.get('cash') or 0) + float(s.get('cash_tips') or 0) for s in sales) + sum(float(c.get('income') or 0) for c in cash_rcds)
     lt_cash_expense = sum(float(t.get('cash_amount') or 0) for t in trans) + sum(float(c.get('expense') or 0) for c in cash_rcds)
     
+    lt_cc_expense = sum(float(c.get('expense') or 0) for c in credit_cards)
+    lt_card_payment_amount = sum(float(t.get('amount') or t.get('expense') or 0) for t in trans if str(t.get('category') or '').strip().lower() == 'card payment')
+    
     lt_total_revenue = lt_ledger_income + lt_cash_income
     lt_total_expense = lt_ledger_expense + lt_cash_expense
+    lt_real_expense = lt_total_expense - lt_card_payment_amount + lt_cc_expense
+    
     lt_net_profit = lt_total_revenue - lt_total_expense
-    lt_total_sales = sum(float(s.get('cash') or 0) + float(s.get('debit') or 0) + float(s.get('credit') or 0) + float(s.get('doordash') or 0) + float(s.get('stripe') or 0) + float(s.get('tips') or 0) + float(s.get('cash_tips') or 0) for s in sales)
+    lt_total_sales = sum(float(s.get('cash') or 0) + float(s.get('debit') or 0) + float(s.get('credit') or 0) + float(s.get('doordash') or 0) + float(s.get('cash_tips') or 0) for s in sales)
     lt_net_profit_sales = lt_total_sales - lt_total_expense
     
     lifetime_stats = {
         "revenue": lt_total_revenue,
         "expense": lt_total_expense,
+        "realExpense": lt_real_expense,
         "netProfit": lt_net_profit,
         "totalSales": lt_total_sales,
         "netProfitSales": lt_net_profit_sales
@@ -102,6 +109,7 @@ def get_dashboard(month: Optional[str] = None):
         sales = [s for s in sales if str(s.get('date', '')).startswith(month)]
         trans = [t for t in trans if str(t.get('date', '')).startswith(month)]
         cash_rcds = [c for c in cash_rcds if str(c.get('date', '')).startswith(month)]
+        credit_cards = [c for c in credit_cards if str(c.get('date', '')).startswith(month)]
     
     # --- Monthly Calculations ---
     ledger_income = sum(float(t.get('income') or 0) for t in trans)
@@ -110,8 +118,13 @@ def get_dashboard(month: Optional[str] = None):
     cash_income = sum(float(s.get('cash') or 0) + float(s.get('cash_tips') or 0) for s in sales) + sum(float(c.get('income') or 0) for c in cash_rcds)
     cash_expense = sum(float(t.get('cash_amount') or 0) for t in trans) + sum(float(c.get('expense') or 0) for c in cash_rcds)
     
+    cc_expense = sum(float(c.get('expense') or 0) for c in credit_cards)
+    card_payment_amount = sum(float(t.get('amount') or t.get('expense') or 0) for t in trans if str(t.get('category') or '').strip().lower() == 'card payment')
+    
     total_revenue = ledger_income + cash_income
     total_expense = ledger_expense + cash_expense
+    real_expense = total_expense - card_payment_amount + cc_expense
+    
     net_profit = total_revenue - total_expense
     current_cash = cash_income - cash_expense
     
@@ -126,7 +139,7 @@ def get_dashboard(month: Optional[str] = None):
         "cash_tips": sum(float(s.get('cash_tips') or 0) for s in sales),
     }
     
-    total_sales = sum(sales_breakdown.values())
+    total_sales = sum(sales_breakdown[k] for k in ['cash', 'debit', 'credit', 'doordash', 'cash_tips'])
     net_profit_sales = total_sales - total_expense
     
     # ------------------
@@ -143,7 +156,7 @@ def get_dashboard(month: Optional[str] = None):
         c = str(t.get('category') or "").strip()
         p = str(t.get('payee') or "").strip()
         
-        if expense_val > 0:
+        if expense_val > 0 and c.lower() != 'card payment':
             if c: cat_exp_map[c] = cat_exp_map.get(c, 0.0) + expense_val
             if p: payee_exp_map[p] = payee_exp_map.get(p, 0.0) + expense_val
 
@@ -152,6 +165,16 @@ def get_dashboard(month: Optional[str] = None):
         expense_val = float(c_rcd.get('expense') or 0.0)
         c = str(c_rcd.get('category') or "").strip()
         p = str(c_rcd.get('payee') or "").strip()
+        
+        if expense_val > 0 and c.lower() != 'card payment':
+            if c: cat_exp_map[c] = cat_exp_map.get(c, 0.0) + expense_val
+            if p: payee_exp_map[p] = payee_exp_map.get(p, 0.0) + expense_val
+
+    # Credit Cards 분석 (Credit Card Ledger)
+    for cc in credit_cards:
+        expense_val = float(cc.get('expense') or 0.0)
+        c = str(cc.get('category') or "").strip()
+        p = str(cc.get('payee') or "").strip()
         
         if expense_val > 0:
             if c: cat_exp_map[c] = cat_exp_map.get(c, 0.0) + expense_val
@@ -172,6 +195,7 @@ def get_dashboard(month: Optional[str] = None):
     return {
         "totalRevenue": total_revenue,
         "totalExpense": total_expense,
+        "realExpense": real_expense,
         "netProfit": net_profit,
         "totalSales": total_sales,
         "netProfitSales": net_profit_sales,

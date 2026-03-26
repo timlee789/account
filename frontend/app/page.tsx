@@ -40,6 +40,7 @@ export default function Home() {
   const [dashboardSummary, setDashboardSummary] = useState({
     totalRevenue: 0,
     totalExpense: 0,
+    realExpense: 0,
     netProfit: 0,
     totalSales: 0,
     netProfitSales: 0,
@@ -57,6 +58,7 @@ export default function Home() {
   const [lifetimeSummary, setLifetimeSummary] = useState({
     totalRevenue: 0,
     totalExpense: 0,
+    realExpense: 0,
     netProfit: 0,
     totalSales: 0,
     netProfitSales: 0,

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 interface SalesRecord {
   date: string; cash: number; debit: number; credit: number;
   svc: number; tips: number; tax: number; cash_tips: number;
-  doordash: number; stripe: number; total: number; memo: string;
+  doordash: number; stripe: number; total: number; deposit?: number; memo: string;
 }
 
 interface Props {
@@ -30,7 +30,7 @@ export default function SalesTable({ sales, onUpdate, onDelete }: Props) {
   const sortedSales = [...sales].sort((a, b) => b.date.localeCompare(a.date));
   const rowsWithSubtotals: any[] = [];
   let currentMonth = "";
-  let monthSums = { cash: 0, debit: 0, credit: 0, svc: 0, tips: 0, tax: 0, cash_tips: 0, doordash: 0, stripe: 0, total: 0 };
+  let monthSums = { cash: 0, debit: 0, credit: 0, svc: 0, tips: 0, tax: 0, cash_tips: 0, doordash: 0, stripe: 0, total: 0, deposit: 0 };
 
   sortedSales.forEach((s, idx) => {
     const month = s.date.substring(0, 7); // Extract YYYY-MM explicitly for grouping
@@ -39,7 +39,7 @@ export default function SalesTable({ sales, onUpdate, onDelete }: Props) {
     if (currentMonth && month !== currentMonth) {
       rowsWithSubtotals.push({ isSubtotal: true, month: currentMonth, ...monthSums });
       // 합계 초기화
-      monthSums = { cash: 0, debit: 0, credit: 0, svc: 0, tips: 0, tax: 0, cash_tips: 0, doordash: 0, stripe: 0, total: 0 };
+      monthSums = { cash: 0, debit: 0, credit: 0, svc: 0, tips: 0, tax: 0, cash_tips: 0, doordash: 0, stripe: 0, total: 0, deposit: 0 };
     }
 
     currentMonth = month;
@@ -56,6 +56,7 @@ export default function SalesTable({ sales, onUpdate, onDelete }: Props) {
     monthSums.doordash += s.doordash || 0;
     monthSums.stripe += s.stripe || 0;
     monthSums.total += s.total || 0;
+    monthSums.deposit += s.deposit || 0;
 
     // 마지막 데이터인 경우 합계 행 추가
     if (idx === sortedSales.length - 1) {
@@ -75,14 +76,15 @@ export default function SalesTable({ sales, onUpdate, onDelete }: Props) {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full border-collapse text-[11px]">
+      <div className="overflow-x-auto overflow-y-hidden">
+        <table className="table-fixed w-auto border-collapse text-[11px] mx-auto bg-gray-900/10">
           <thead>
             <tr className="bg-gray-900 text-gray-400 uppercase font-bold tracking-tighter">
-              <th className="px-4 py-4 border-r border-gray-700 text-center w-28">DATE</th>
-              {columns.map(col => <th key={col.key} className="px-3 py-4 border-r border-gray-700 text-right">{col.label}</th>)}
-              <th className="px-4 py-4 border-r border-gray-700 text-right text-white bg-indigo-900/20">TOTAL</th>
-              <th className="px-4 py-4 text-left">MEMO/ACTION</th>
+              <th className="px-1 py-4 border-r border-gray-700 text-center" style={{ width: '80px', minWidth: '80px', maxWidth: '80px' }}>DATE</th>
+              {columns.map(col => <th key={col.key} className="px-1 py-4 border-r border-gray-700 text-right" style={{ width: '80px', minWidth: '80px', maxWidth: '80px' }}>{col.label}</th>)}
+              <th className="px-1 py-4 border-r border-gray-700 text-right text-white bg-indigo-900/20" style={{ width: '80px', minWidth: '80px', maxWidth: '80px' }}>TOTAL</th>
+              <th className="px-1 py-4 border-r border-gray-700 text-right text-emerald-300" style={{ width: '80px', minWidth: '80px', maxWidth: '80px' }}>DEPOSIT</th>
+              <th className="px-1 py-4 text-center text-indigo-300" style={{ width: '80px', minWidth: '80px', maxWidth: '80px' }}>DEP %</th>
             </tr>
           </thead>
           <tbody>
@@ -101,7 +103,8 @@ export default function SalesTable({ sales, onUpdate, onDelete }: Props) {
                     <td className="px-3 py-3 border-r border-gray-700 text-right text-pink-300">${row.doordash.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                     <td className="px-3 py-3 border-r border-gray-700 text-right text-cyan-300">${row.stripe.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                     <td className="px-4 py-3 border-r border-gray-700 text-right text-white underline underline-offset-4">${row.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                    <td className="bg-gray-900/40"></td>
+                    <td className="px-2 py-3 border-r border-gray-700 text-right text-emerald-300 font-black">${(row.deposit || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="px-2 py-3 text-center text-indigo-300 font-black">{((row.debit || 0) + (row.credit || 0)) > 0 ? `${(((row.deposit || 0) / ((row.debit || 0) + (row.credit || 0))) * 100).toFixed(1)}%` : "0.0%"}</td>
                   </tr>
                 );
               }
@@ -109,18 +112,22 @@ export default function SalesTable({ sales, onUpdate, onDelete }: Props) {
                 <tr key={row.date} className="hover:bg-gray-700/30 group border-b border-gray-700/50">
                   <td className="px-4 py-3 font-bold text-gray-300 border-r border-gray-700 bg-gray-900/20 text-center">{row.date}</td>
                   {columns.map(col => (
-                    <td key={col.key} className="px-3 py-2 border-r border-gray-700">
+                    <td key={col.key} className="px-1 py-2 border-r border-gray-700">
                       <input type="text" defaultValue={(row as any)[col.key] > 0 ? `$${Number((row as any)[col.key]).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : ""}
-                        className={`w-full bg-transparent text-right font-bold focus:outline-none px-2 ${col.color}`}
+                        className={`w-full bg-transparent text-right font-bold focus:outline-none px-1 ${col.color}`}
                         onBlur={(e) => { const n = parseFloat(e.target.value.replace(/[^0-9.]/g, "")) || 0; onUpdate(row.date, col.key, n); }} />
                     </td>
                   ))}
                   <td className="px-4 py-3 text-right font-black text-white bg-indigo-900/10 border-r border-gray-700 shadow-inner">
                     ${(row.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </td>
-                  <td className="px-4 py-2 flex justify-between items-center group">
-                    <input type="text" defaultValue={row.memo} onBlur={(e) => onUpdate(row.date, 'memo', e.target.value)}
-                      className="flex-1 bg-transparent text-gray-500 italic text-[10px] outline-none" />
+                  <td className="px-2 py-2 border-r border-gray-700">
+                    <input type="text" defaultValue={(row.deposit || 0) > 0 ? `$${Number(row.deposit).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : ""}
+                        className="w-full bg-transparent text-right font-bold focus:outline-none px-1 text-emerald-300"
+                        onBlur={(e) => { const n = parseFloat(e.target.value.replace(/[^0-9.]/g, "")) || 0; onUpdate(row.date, 'deposit', n); }} />
+                  </td>
+                  <td className="px-2 py-2 text-center font-bold text-indigo-300 flex justify-between items-center group">
+                    <span>{((row.debit || 0) + (row.credit || 0)) > 0 ? `${(((row.deposit || 0) / ((row.debit || 0) + (row.credit || 0))) * 100).toFixed(1)}%` : "0.0%"}</span>
                     <button onClick={() => onDelete(row.date)} className="opacity-0 group-hover:opacity-100 text-rose-500 font-bold text-[9px] ml-1">DEL</button>
                   </td>
                 </tr>
