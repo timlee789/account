@@ -101,7 +101,8 @@ def get_dashboard(month: Optional[str] = None):
         "realExpense": lt_real_expense,
         "netProfit": lt_net_profit,
         "totalSales": lt_total_sales,
-        "netProfitSales": lt_net_profit_sales
+        "netProfitSales": lt_net_profit_sales,
+        "realProfit": lt_total_sales - lt_real_expense
     }
     
     # --- Monthly Filter ---
@@ -141,6 +142,7 @@ def get_dashboard(month: Optional[str] = None):
     
     total_sales = sum(sales_breakdown[k] for k in ['cash', 'debit', 'credit', 'doordash', 'cash_tips'])
     net_profit_sales = total_sales - total_expense
+    real_profit = total_sales - real_expense
     
     # ------------------
     # 비용 추적 분석 로직
@@ -199,6 +201,7 @@ def get_dashboard(month: Optional[str] = None):
         "netProfit": net_profit,
         "totalSales": total_sales,
         "netProfitSales": net_profit_sales,
+        "realProfit": real_profit,
         "balance": current_cash,
         "salesBreakdown": sales_breakdown,
         "categoryExpenses": category_expenses,

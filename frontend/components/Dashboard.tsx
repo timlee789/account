@@ -7,6 +7,7 @@ interface DashboardSummary {
   netProfit: number;
   totalSales?: number;
   netProfitSales?: number;
+  realProfit?: number;
   balance: number;
   salesBreakdown?: {
     cash: number;
@@ -26,6 +27,7 @@ interface DashboardSummary {
     netProfit: number;
     totalSales?: number;
     netProfitSales?: number;
+    realProfit?: number;
   };
 }
 
@@ -39,9 +41,10 @@ interface Props {
 const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2 });
 
 export default function Dashboard({ summary, selectedMonth, onMonthChange, isLifetime }: Props) {
-  const { totalRevenue, totalExpense, realExpense = 0, netProfit, totalSales = 0, netProfitSales = 0, balance, salesBreakdown, categoryExpenses = [], payeeExpenses = [] } = summary;
+  const { totalRevenue, totalExpense, realExpense = 0, netProfit, totalSales = 0, netProfitSales = 0, realProfit = 0, balance, salesBreakdown, categoryExpenses = [], payeeExpenses = [] } = summary;
 
   const maxCategoryAmount = Math.max(...categoryExpenses.map(c => c.amount), 1);
+  const totalCatExpense = categoryExpenses.reduce((s, c) => s + c.amount, 0);
   const maxPayeeAmount = Math.max(...payeeExpenses.map(p => p.amount), 1);
   const revenueRatio = totalRevenue + totalExpense > 0 ? (totalRevenue / (totalRevenue + totalExpense)) * 100 : 50;
 
@@ -138,7 +141,7 @@ export default function Dashboard({ summary, selectedMonth, onMonthChange, isLif
         </div>
 
         {/* Row 2 */}
-        <div className="grid grid-cols-3 gap-3 md:gap-4">
+        <div className="grid grid-cols-4 gap-3 md:gap-4">
           {/* Net Profit (Revenue) */}
           <div className="relative overflow-hidden bg-gradient-to-br from-indigo-900/50 to-purple-900/50 rounded-2xl border border-indigo-700/50 hover:border-indigo-400/70 px-2 sm:px-4 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(99,102,241,0.2)] text-center group flex flex-col items-center justify-between">
             <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-400/5 rounded-full -translate-y-4 translate-x-4 group-hover:bg-indigo-400/10 transition-all"></div>
@@ -153,6 +156,14 @@ export default function Dashboard({ summary, selectedMonth, onMonthChange, isLif
             <p className="text-violet-300 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-2 leading-tight">Net Profit (Sales)</p>
             <p className={`text-xl sm:text-2xl font-black ${netProfitSales >= 0 ? 'text-white' : 'text-rose-400'}`}>${fmt(netProfitSales)}</p>
             <p className="text-violet-400/70 text-[9px] sm:text-[10px] mt-3 font-semibold leading-tight">Take Home <br/>(Sales Only)</p>
+          </div>
+
+          {/* Real Profit */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-emerald-900/50 to-teal-900/50 rounded-2xl border border-emerald-700/50 hover:border-emerald-400/70 px-2 sm:px-4 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(16,185,129,0.2)] text-center group flex flex-col items-center justify-between">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-400/5 rounded-full -translate-y-4 translate-x-4 group-hover:bg-emerald-400/10 transition-all"></div>
+            <p className="text-emerald-300 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-2 leading-tight flex items-center justify-center gap-1">✨ Real Profit ✨</p>
+            <p className={`text-xl sm:text-2xl font-black ${realProfit >= 0 ? 'text-white' : 'text-rose-400'}`}>${fmt(realProfit)}</p>
+            <p className="text-emerald-400/70 text-[9px] sm:text-[10px] mt-3 font-semibold leading-tight flex items-center justify-center gap-1">True Profit<br/>(Sales - Real Exp)</p>
           </div>
 
           {/* Cash on Hand */}
@@ -213,7 +224,7 @@ export default function Dashboard({ summary, selectedMonth, onMonthChange, isLif
           <div className="mt-4 pt-4 border-t border-gray-700/50 text-center">
             <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Total Sales</p>
             <p className="text-emerald-300 font-black text-xl">
-              ${fmt(Object.values(salesBreakdown).reduce((a, b) => a + b, 0))}
+              ${fmt(totalSales)}
             </p>
           </div>
         </div>
@@ -227,17 +238,19 @@ export default function Dashboard({ summary, selectedMonth, onMonthChange, isLif
           <div className="bg-gray-800/60 rounded-2xl border border-gray-700/50 px-4 py-6 shadow-xl flex flex-col">
             <h3 className="text-base font-bold text-gray-100 text-center mb-4">🏷️ Category Expenses</h3>
             {/* Column headers */}
-            <div className="grid grid-cols-3 border border-white/[0.07] rounded-t-lg overflow-hidden">
+            <div className="grid grid-cols-4 border border-white/[0.07] rounded-t-lg overflow-hidden">
               <div className="text-[10px] text-gray-400 font-black uppercase tracking-wider text-center py-2 px-1 bg-gray-700/40">Category</div>
               <div className="text-[10px] text-indigo-400 font-black uppercase tracking-wider text-center py-2 px-1 bg-gray-700/40 border-l border-white/[0.07]">Budget</div>
               <div className="text-[10px] text-orange-400 font-black uppercase tracking-wider text-center py-2 px-1 bg-gray-700/40 border-l border-white/[0.07]">Actual</div>
+              <div className="text-[10px] text-pink-400 font-black uppercase tracking-wider text-center py-2 px-1 bg-gray-700/40 border-l border-white/[0.07]">Percent</div>
             </div>
             {/* Rows */}
             <div className="border-l border-r border-white/[0.07] flex-1">
               {categoryExpenses.map((cat, idx) => {
                 const pct = Math.max(2, (cat.amount / maxCategoryAmount) * 100);
+                const sharePct = totalCatExpense > 0 ? (cat.amount / totalCatExpense) * 100 : 0;
                 return (
-                  <div key={idx} className={`grid grid-cols-3 border-b border-white/[0.07] hover:bg-gray-700/20 transition-colors ${idx % 2 === 0 ? 'bg-gray-800/20' : 'bg-gray-900/20'}`}>
+                  <div key={idx} className={`grid grid-cols-4 border-b border-white/[0.07] hover:bg-gray-700/20 transition-colors ${idx % 2 === 0 ? 'bg-gray-800/20' : 'bg-gray-900/20'}`}>
                     <div className="py-2.5 px-2 flex items-center justify-center border-r border-white/[0.07]">
                       <span className="text-gray-200 text-xs font-semibold text-center leading-tight">{cat.name || "Uncategorized"}</span>
                     </div>
@@ -259,15 +272,18 @@ export default function Dashboard({ summary, selectedMonth, onMonthChange, isLif
                         </span>
                       )}
                     </div>
-                    <div className="py-2.5 px-2 flex items-center justify-center">
+                    <div className="py-2.5 px-2 flex items-center justify-center border-r border-white/[0.07]">
                       <span className="text-orange-300 text-xs font-black">${fmt(cat.amount)}</span>
+                    </div>
+                    <div className="py-2.5 px-2 flex items-center justify-center">
+                      <span className="text-pink-300 text-xs font-black">{sharePct.toFixed(1)}%</span>
                     </div>
                   </div>
                 );
               })}
             </div>
             {/* Totals */}
-            <div className="grid grid-cols-3 border border-t-0 border-white/[0.07] rounded-b-lg bg-gray-700/30">
+            <div className="grid grid-cols-4 border border-t-0 border-white/[0.07] rounded-b-lg bg-gray-700/30">
               <div className="py-2.5 px-2 flex items-center justify-center border-r border-white/[0.07]">
                 <span className="text-[10px] text-gray-400 font-black uppercase tracking-wider">Total</span>
               </div>
@@ -276,8 +292,11 @@ export default function Dashboard({ summary, selectedMonth, onMonthChange, isLif
                   <span className="text-indigo-300 font-black text-sm">${fmt(categoryExpenses.reduce((s, c) => s + (c.budget || 0), 0))}</span>
                 )}
               </div>
+              <div className="py-2.5 px-2 flex items-center justify-center border-r border-white/[0.07]">
+                <span className="text-orange-300 font-black text-sm">${fmt(totalCatExpense)}</span>
+              </div>
               <div className="py-2.5 px-2 flex items-center justify-center">
-                <span className="text-orange-300 font-black text-sm">${fmt(categoryExpenses.reduce((s, c) => s + c.amount, 0))}</span>
+                <span className="text-pink-300 font-black text-sm">100.0%</span>
               </div>
             </div>
           </div>
