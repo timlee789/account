@@ -8,6 +8,7 @@ import SalesTable from "@/components/SalesTable";
 import Dashboard from '@/components/Dashboard';
 import CreditCardTable from "@/components/CreditCardTable";
 import CashTable from "@/components/CashTable";
+import MonthlyPLTable from "@/components/MonthlyPLTable";
 import SettingsModal from "@/components/SettingsModal";
 
 export default function Home() {
@@ -41,10 +42,13 @@ export default function Home() {
     totalRevenue: 0,
     totalExpense: 0,
     realExpense: 0,
+    homeExpense: 0,
     netProfit: 0,
+    realProfit: 0,
     totalSales: 0,
     netProfitSales: 0,
     balance: 0,
+    cardPayment: 0,
     salesBreakdown: {
       cash: 0,
       debit: 0,
@@ -59,10 +63,13 @@ export default function Home() {
     totalRevenue: 0,
     totalExpense: 0,
     realExpense: 0,
+    homeExpense: 0,
     netProfit: 0,
+    realProfit: 0,
     totalSales: 0,
     netProfitSales: 0,
     balance: 0,
+    cardPayment: 0,
     salesBreakdown: {
       cash: 0,
       debit: 0,
@@ -76,6 +83,7 @@ export default function Home() {
   const [salesRecords, setSalesRecords] = useState([]);
   const [creditCards, setCreditCards] = useState([]);
   const [cashRecords, setCashRecords] = useState([]);
+  const [monthlyPL, setMonthlyPL] = useState<{ months: any[]; totals: any }>({ months: [], totals: {} });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -129,6 +137,11 @@ export default function Home() {
         if (!checkAuth(res)) return;
         const data = await res.json();
         setCashRecords(data.data);
+      } else if (activeTab === 'monthly_pl') {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/monthly-summary`);
+        if (!checkAuth(res)) return;
+        const data = await res.json();
+        setMonthlyPL({ months: data.months || [], totals: data.totals || {} });
       }
     } catch (error) {
       console.error("Failed to load data:", error);
@@ -321,6 +334,15 @@ export default function Home() {
               📈 Dashboard
             </button>
             <button
+              onClick={() => setActiveTab('monthly_pl')}
+              className={`py-3.5 px-6 rounded-xl font-bold text-lg transition-all duration-200 whitespace-nowrap ${activeTab === 'monthly_pl'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/40 border border-indigo-400/50'
+                : 'text-gray-400 hover:text-white hover:bg-gray-700/70 border border-transparent'
+                }`}
+            >
+              📅 Monthly P&L
+            </button>
+            <button
               onClick={() => setActiveTab('ledger')}
               className={`py-3.5 px-6 rounded-xl font-bold text-lg transition-all duration-200 whitespace-nowrap ${activeTab === 'ledger'
                 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/40 border border-indigo-400/50'
@@ -384,6 +406,11 @@ export default function Home() {
               />
             </div>
           </div>
+        )}
+
+        {/* Monthly P&L 탭 */}
+        {activeTab === 'monthly_pl' && (
+          <MonthlyPLTable months={monthlyPL.months} totals={monthlyPL.totals} />
         )}
 
         {/* Ledger 탭: 기존 테이블만 표시 */}

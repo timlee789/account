@@ -70,6 +70,24 @@ app.add_middleware(
 
 engine = ExpenseEngine()
 
+HOME_CATEGORIES = {'home food', 'home etc'}
+
+def _sum_home_expense(trans, cash_rcds, credit_cards):
+    def _is_home(rec):
+        return str(rec.get('category') or '').strip().lower() in HOME_CATEGORIES
+    total = 0.0
+    for t in trans:
+        if _is_home(t):
+            total += float(t.get('amount') or t.get('expense') or 0)
+            total += float(t.get('cash_amount') or 0)
+    for c in cash_rcds:
+        if _is_home(c):
+            total += float(c.get('expense') or 0)
+    for cc in credit_cards:
+        if _is_home(cc):
+            total += float(cc.get('expense') or 0)
+    return total
+
 @app.get("/dashboard-summary")
 def get_dashboard(month: Optional[str] = None):
     sales = engine.get_sales_records()
@@ -86,23 +104,30 @@ def get_dashboard(month: Optional[str] = None):
     
     lt_cc_expense = sum(float(c.get('expense') or 0) for c in credit_cards)
     lt_card_payment_amount = sum(float(t.get('amount') or t.get('expense') or 0) for t in trans if str(t.get('category') or '').strip().lower() == 'card payment')
-    
+    lt_cash_out_amount = sum(float(t.get('amount') or t.get('expense') or 0) for t in trans if str(t.get('category') or '').strip().lower() == 'cash out')
+
     lt_total_revenue = lt_ledger_income + lt_cash_income
     lt_total_expense = lt_ledger_expense + lt_cash_expense
-    lt_real_expense = lt_total_expense - lt_card_payment_amount + lt_cc_expense
+    lt_real_expense = lt_total_expense - lt_card_payment_amount - lt_cash_out_amount + lt_cc_expense
     
-    lt_net_profit = lt_total_revenue - lt_total_expense
+    lt_home_expense = _sum_home_expense(trans, cash_rcds, credit_cards)
+    lt_business_expense = lt_real_expense - lt_home_expense
+
+    lt_net_profit = lt_total_revenue - lt_real_expense
     lt_total_sales = sum(float(s.get('cash') or 0) + float(s.get('debit') or 0) + float(s.get('credit') or 0) + float(s.get('doordash') or 0) + float(s.get('cash_tips') or 0) for s in sales)
-    lt_net_profit_sales = lt_total_sales - lt_total_expense
-    
+    lt_net_profit_sales = lt_total_sales - lt_real_expense
+    lt_real_profit = lt_total_revenue - lt_business_expense
+
     lifetime_stats = {
         "revenue": lt_total_revenue,
-        "expense": lt_total_expense,
-        "realExpense": lt_real_expense,
+        "expense": lt_real_expense,
+        "realExpense": lt_business_expense,
+        "homeExpense": lt_home_expense,
         "netProfit": lt_net_profit,
+        "realProfit": lt_real_profit,
         "totalSales": lt_total_sales,
         "netProfitSales": lt_net_profit_sales,
-        "realProfit": lt_total_sales - lt_real_expense
+        "cardPayment": lt_card_payment_amount,
     }
     
     # --- Monthly Filter ---
@@ -121,12 +146,17 @@ def get_dashboard(month: Optional[str] = None):
     
     cc_expense = sum(float(c.get('expense') or 0) for c in credit_cards)
     card_payment_amount = sum(float(t.get('amount') or t.get('expense') or 0) for t in trans if str(t.get('category') or '').strip().lower() == 'card payment')
-    
+    cash_out_amount = sum(float(t.get('amount') or t.get('expense') or 0) for t in trans if str(t.get('category') or '').strip().lower() == 'cash out')
+
     total_revenue = ledger_income + cash_income
     total_expense = ledger_expense + cash_expense
-    real_expense = total_expense - card_payment_amount + cc_expense
-    
-    net_profit = total_revenue - total_expense
+    real_expense = total_expense - card_payment_amount - cash_out_amount + cc_expense
+
+    home_expense = _sum_home_expense(trans, cash_rcds, credit_cards)
+    business_expense = real_expense - home_expense
+
+    net_profit = total_revenue - real_expense
+    real_profit = total_revenue - business_expense
     current_cash = cash_income - cash_expense
     
     # Calculate detailed sales breakdown
@@ -141,8 +171,7 @@ def get_dashboard(month: Optional[str] = None):
     }
     
     total_sales = sum(sales_breakdown[k] for k in ['cash', 'debit', 'credit', 'doordash', 'cash_tips'])
-    net_profit_sales = total_sales - total_expense
-    real_profit = total_sales - real_expense
+    net_profit_sales = total_sales - real_expense
     
     # ------------------
     # 비용 추적 분석 로직
@@ -157,8 +186,8 @@ def get_dashboard(month: Optional[str] = None):
         expense_val = float(t.get('expense') or 0.0) + float(t.get('cash_amount') or 0.0)
         c = str(t.get('category') or "").strip()
         p = str(t.get('payee') or "").strip()
-        
-        if expense_val > 0 and c.lower() != 'card payment':
+
+        if expense_val > 0 and c.lower() not in ('card payment', 'cash out'):
             if c: cat_exp_map[c] = cat_exp_map.get(c, 0.0) + expense_val
             if p: payee_exp_map[p] = payee_exp_map.get(p, 0.0) + expense_val
 
@@ -167,8 +196,8 @@ def get_dashboard(month: Optional[str] = None):
         expense_val = float(c_rcd.get('expense') or 0.0)
         c = str(c_rcd.get('category') or "").strip()
         p = str(c_rcd.get('payee') or "").strip()
-        
-        if expense_val > 0 and c.lower() != 'card payment':
+
+        if expense_val > 0 and c.lower() not in ('card payment', 'cash out'):
             if c: cat_exp_map[c] = cat_exp_map.get(c, 0.0) + expense_val
             if p: payee_exp_map[p] = payee_exp_map.get(p, 0.0) + expense_val
 
@@ -196,18 +225,131 @@ def get_dashboard(month: Optional[str] = None):
     
     return {
         "totalRevenue": total_revenue,
-        "totalExpense": total_expense,
-        "realExpense": real_expense,
+        "totalExpense": real_expense,
+        "realExpense": business_expense,
+        "homeExpense": home_expense,
         "netProfit": net_profit,
+        "realProfit": real_profit,
         "totalSales": total_sales,
         "netProfitSales": net_profit_sales,
-        "realProfit": real_profit,
         "balance": current_cash,
+        "cardPayment": card_payment_amount,
         "salesBreakdown": sales_breakdown,
         "categoryExpenses": category_expenses,
         "payeeExpenses": payee_expenses,
-        "lifetimeStats": lifetime_stats
+        "lifetimeStats": lifetime_stats,
     }
+
+@app.get("/monthly-summary")
+def get_monthly_summary():
+    sales = engine.get_sales_records()
+    trans = engine.get_all_transactions()
+    cash_rcds = engine.get_all_cash_records()
+    credit_cards = engine.get_all_credit_cards()
+
+    months: dict[str, dict] = {}
+
+    def bucket(m: str):
+        if m not in months:
+            months[m] = {
+                "ledger_income": 0.0,
+                "ledger_expense": 0.0,
+                "cash_income": 0.0,
+                "cash_expense": 0.0,
+                "cc_expense": 0.0,
+                "card_payment": 0.0,
+                "cash_out": 0.0,
+                "home_expense": 0.0,
+                "sales_total": 0.0,
+            }
+        return months[m]
+
+    def month_of(d):
+        s = str(d or "")
+        return s[:7] if len(s) >= 7 and s[4] == '-' else None
+
+    for s in sales:
+        m = month_of(s.get('date'))
+        if not m: continue
+        b = bucket(m)
+        b["cash_income"] += float(s.get('cash') or 0) + float(s.get('cash_tips') or 0)
+        b["sales_total"] += (
+            float(s.get('cash') or 0) + float(s.get('debit') or 0) +
+            float(s.get('credit') or 0) + float(s.get('doordash') or 0) +
+            float(s.get('cash_tips') or 0)
+        )
+
+    for t in trans:
+        m = month_of(t.get('date'))
+        if not m: continue
+        b = bucket(m)
+        b["ledger_income"] += float(t.get('income') or 0)
+        exp_val = float(t.get('amount') or t.get('expense') or 0)
+        cat = str(t.get('category') or '').strip().lower()
+        if exp_val > 0:
+            b["ledger_expense"] += exp_val
+            if cat == 'card payment':
+                b["card_payment"] += exp_val
+            elif cat == 'cash out':
+                b["cash_out"] += exp_val
+        cash_amt = float(t.get('cash_amount') or 0)
+        b["cash_expense"] += cash_amt
+        if cat in HOME_CATEGORIES:
+            b["home_expense"] += (exp_val if exp_val > 0 else 0) + cash_amt
+
+    for c in cash_rcds:
+        m = month_of(c.get('date'))
+        if not m: continue
+        b = bucket(m)
+        b["cash_income"] += float(c.get('income') or 0)
+        c_exp = float(c.get('expense') or 0)
+        b["cash_expense"] += c_exp
+        if str(c.get('category') or '').strip().lower() in HOME_CATEGORIES:
+            b["home_expense"] += c_exp
+
+    for cc in credit_cards:
+        m = month_of(cc.get('date'))
+        if not m: continue
+        b = bucket(m)
+        cc_exp = float(cc.get('expense') or 0)
+        b["cc_expense"] += cc_exp
+        if str(cc.get('category') or '').strip().lower() in HOME_CATEGORIES:
+            b["home_expense"] += cc_exp
+
+    rows = []
+    for m in sorted(months.keys(), reverse=True):
+        d = months[m]
+        revenue = d["ledger_income"] + d["cash_income"]
+        if revenue <= 0:
+            continue
+        total_expense_cf = d["ledger_expense"] + d["cash_expense"]
+        real_expense = total_expense_cf - d["card_payment"] - d["cash_out"] + d["cc_expense"]
+        business_expense = real_expense - d["home_expense"]
+        sales_total = d["sales_total"]
+        rows.append({
+            "month": m,
+            "revenue": revenue,
+            "sales": sales_total,
+            "expense": real_expense,
+            "realExpense": business_expense,
+            "homeExpense": d["home_expense"],
+            "netProfit": revenue - real_expense,
+            "netProfitSales": sales_total - real_expense,
+            "realProfit": revenue - business_expense,
+        })
+
+    totals = {
+        "revenue": sum(r["revenue"] for r in rows),
+        "sales": sum(r["sales"] for r in rows),
+        "expense": sum(r["expense"] for r in rows),
+        "realExpense": sum(r["realExpense"] for r in rows),
+        "homeExpense": sum(r["homeExpense"] for r in rows),
+        "netProfit": sum(r["netProfit"] for r in rows),
+        "netProfitSales": sum(r["netProfitSales"] for r in rows),
+        "realProfit": sum(r["realProfit"] for r in rows),
+    }
+
+    return {"months": rows, "totals": totals}
 
 # --- [모델 정의] ---
 
