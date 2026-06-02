@@ -116,7 +116,7 @@ def get_dashboard(month: Optional[str] = None):
     lt_net_profit = lt_total_revenue - lt_real_expense
     lt_total_sales = sum(float(s.get('cash') or 0) + float(s.get('debit') or 0) + float(s.get('credit') or 0) + float(s.get('doordash') or 0) + float(s.get('cash_tips') or 0) for s in sales)
     lt_net_profit_sales = lt_total_sales - lt_real_expense
-    lt_real_profit = lt_total_revenue - lt_business_expense
+    lt_real_profit = lt_total_sales - lt_business_expense
 
     lifetime_stats = {
         "revenue": lt_total_revenue,
@@ -156,7 +156,6 @@ def get_dashboard(month: Optional[str] = None):
     business_expense = real_expense - home_expense
 
     net_profit = total_revenue - real_expense
-    real_profit = total_revenue - business_expense
     current_cash = cash_income - cash_expense
     
     # Calculate detailed sales breakdown
@@ -172,6 +171,7 @@ def get_dashboard(month: Optional[str] = None):
     
     total_sales = sum(sales_breakdown[k] for k in ['cash', 'debit', 'credit', 'doordash', 'cash_tips'])
     net_profit_sales = total_sales - real_expense
+    real_profit = total_sales - business_expense
     
     # ------------------
     # 비용 추적 분석 로직
@@ -335,7 +335,7 @@ def get_monthly_summary():
             "homeExpense": d["home_expense"],
             "netProfit": revenue - real_expense,
             "netProfitSales": sales_total - real_expense,
-            "realProfit": revenue - business_expense,
+            "realProfit": sales_total - business_expense,
         })
 
     totals = {
