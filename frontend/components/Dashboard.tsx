@@ -49,6 +49,12 @@ export default function Dashboard({ summary, selectedMonth, onMonthChange, isLif
   const maxPayeeAmount = Math.max(...payeeExpenses.map(p => p.amount), 1);
   const revenueRatio = totalRevenue + totalExpense > 0 ? (totalRevenue / (totalRevenue + totalExpense)) * 100 : 50;
 
+  // Tim Lee 본인 급여 (지출로 잡혀 있으나 실제로는 본인 수입) → Real Profit에 더해 실제 총 이익 산출
+  const timLeeWage = payeeExpenses
+    .filter(p => p.name.toLowerCase().replace(/\s+/g, " ").includes("tim lee"))
+    .reduce((s, p) => s + p.amount, 0);
+  const totalProfit = realProfit + timLeeWage;
+
   const handleBudgetChange = async (category: string, val: string) => {
     if (isLifetime || !selectedMonth) return;
     const num = parseFloat(val.replace(/[^0-9.]/g, '')) || 0;
@@ -142,7 +148,7 @@ export default function Dashboard({ summary, selectedMonth, onMonthChange, isLif
         </div>
 
         {/* Row 2 */}
-        <div className="grid grid-cols-3 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
           {/* Net Profit (Revenue) */}
           <div className="relative overflow-hidden bg-gradient-to-br from-indigo-900/50 to-purple-900/50 rounded-2xl border border-indigo-700/50 hover:border-indigo-400/70 px-2 sm:px-4 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(99,102,241,0.2)] text-center group flex flex-col items-center justify-between">
             <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-400/5 rounded-full -translate-y-4 translate-x-4 group-hover:bg-indigo-400/10 transition-all"></div>
@@ -165,6 +171,14 @@ export default function Dashboard({ summary, selectedMonth, onMonthChange, isLif
             <p className="text-emerald-300 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-2 leading-tight flex items-center justify-center gap-1">✨ Real Profit ✨</p>
             <p className={`text-xl sm:text-2xl font-black ${realProfit >= 0 ? 'text-white' : 'text-rose-400'}`}>${fmt(realProfit)}</p>
             <p className="text-emerald-400/70 text-[9px] sm:text-[10px] mt-3 font-semibold leading-tight">Excl. Home</p>
+          </div>
+
+          {/* Total Profit (Real Profit + Tim Lee wage) */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-amber-900/50 to-yellow-900/50 rounded-2xl border border-amber-600/50 hover:border-amber-400/70 px-2 sm:px-4 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(245,158,11,0.2)] text-center group flex flex-col items-center justify-between">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-amber-400/5 rounded-full -translate-y-4 translate-x-4 group-hover:bg-amber-400/10 transition-all"></div>
+            <p className="text-amber-300 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-2 leading-tight flex items-center justify-center gap-1">💰 Total Profit 💰</p>
+            <p className={`text-xl sm:text-2xl font-black ${totalProfit >= 0 ? 'text-white' : 'text-rose-400'}`}>${fmt(totalProfit)}</p>
+            <p className="text-amber-400/70 text-[9px] sm:text-[10px] mt-3 font-semibold leading-tight">Real Profit + Tim Lee (${fmt(timLeeWage)})</p>
           </div>
         </div>
       </div>

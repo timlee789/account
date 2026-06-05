@@ -249,6 +249,9 @@ def get_monthly_summary():
 
     months: dict[str, dict] = {}
 
+    def _is_tim_lee(rec):
+        return 'tim lee' in str(rec.get('payee') or '').strip().lower()
+
     def bucket(m: str):
         if m not in months:
             months[m] = {
@@ -261,6 +264,7 @@ def get_monthly_summary():
                 "cash_out": 0.0,
                 "home_expense": 0.0,
                 "sales_total": 0.0,
+                "tim_lee_wage": 0.0,
             }
         return months[m]
 
@@ -296,6 +300,11 @@ def get_monthly_summary():
         b["cash_expense"] += cash_amt
         if cat in HOME_CATEGORIES:
             b["home_expense"] += (exp_val if exp_val > 0 else 0) + cash_amt
+        # Tim Lee 본인 급여 (지출로 기록되지만 실제로는 본인 수입)
+        if _is_tim_lee(t) and cat not in ('card payment', 'cash out'):
+            tl = float(t.get('expense') or 0) + cash_amt
+            if tl > 0:
+                b["tim_lee_wage"] += tl
 
     for c in cash_rcds:
         m = month_of(c.get('date'))
@@ -304,8 +313,11 @@ def get_monthly_summary():
         b["cash_income"] += float(c.get('income') or 0)
         c_exp = float(c.get('expense') or 0)
         b["cash_expense"] += c_exp
-        if str(c.get('category') or '').strip().lower() in HOME_CATEGORIES:
+        c_cat = str(c.get('category') or '').strip().lower()
+        if c_cat in HOME_CATEGORIES:
             b["home_expense"] += c_exp
+        if _is_tim_lee(c) and c_cat not in ('card payment', 'cash out') and c_exp > 0:
+            b["tim_lee_wage"] += c_exp
 
     for cc in credit_cards:
         m = month_of(cc.get('date'))
@@ -315,6 +327,8 @@ def get_monthly_summary():
         b["cc_expense"] += cc_exp
         if str(cc.get('category') or '').strip().lower() in HOME_CATEGORIES:
             b["home_expense"] += cc_exp
+        if _is_tim_lee(cc) and cc_exp > 0:
+            b["tim_lee_wage"] += cc_exp
 
     rows = []
     for m in sorted(months.keys(), reverse=True):
@@ -336,6 +350,8 @@ def get_monthly_summary():
             "netProfit": revenue - real_expense,
             "netProfitSales": sales_total - real_expense,
             "realProfit": sales_total - business_expense,
+            "timLeeWage": d["tim_lee_wage"],
+            "totalProfit": (sales_total - business_expense) + d["tim_lee_wage"],
         })
 
     totals = {
@@ -347,6 +363,8 @@ def get_monthly_summary():
         "netProfit": sum(r["netProfit"] for r in rows),
         "netProfitSales": sum(r["netProfitSales"] for r in rows),
         "realProfit": sum(r["realProfit"] for r in rows),
+        "timLeeWage": sum(r["timLeeWage"] for r in rows),
+        "totalProfit": sum(r["totalProfit"] for r in rows),
     }
 
     return {"months": rows, "totals": totals}

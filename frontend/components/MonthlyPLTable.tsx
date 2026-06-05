@@ -10,6 +10,8 @@ interface MonthRow {
   netProfit: number;
   netProfitSales: number;
   realProfit: number;
+  timLeeWage: number;
+  totalProfit: number;
 }
 
 interface Totals {
@@ -21,6 +23,8 @@ interface Totals {
   netProfit: number;
   netProfitSales: number;
   realProfit: number;
+  timLeeWage: number;
+  totalProfit: number;
 }
 
 interface Props {
@@ -36,6 +40,9 @@ const profitClass = (n: number) =>
 const realProfitClass = (n: number) =>
   n >= 0 ? "text-emerald-300" : "text-rose-400";
 
+const totalProfitClass = (n: number) =>
+  n >= 0 ? "text-amber-300" : "text-rose-400";
+
 export default function MonthlyPLTable({ months, totals }: Props) {
   const columns: { key: keyof MonthRow; label: string; tone: string }[] = [
     { key: "revenue",        label: "Revenue",      tone: "text-emerald-300" },
@@ -45,6 +52,7 @@ export default function MonthlyPLTable({ months, totals }: Props) {
     { key: "netProfit",      label: "NP (Rev)",     tone: "text-indigo-300"  },
     { key: "netProfitSales", label: "NP (Sales)",   tone: "text-violet-300"  },
     { key: "realProfit",     label: "Real Profit",  tone: "text-emerald-300" },
+    { key: "totalProfit",    label: "Total Profit", tone: "text-amber-300"   },
   ];
 
   return (
@@ -99,6 +107,7 @@ export default function MonthlyPLTable({ months, totals }: Props) {
                   {columns.map((c) => {
                     const val = row[c.key] as number;
                     const cls =
+                      c.key === "totalProfit" ? totalProfitClass(val) :
                       c.key === "realProfit" ? realProfitClass(val) :
                       (c.key === "netProfit" || c.key === "netProfitSales") ? profitClass(val) :
                       "text-gray-100";
@@ -124,6 +133,7 @@ export default function MonthlyPLTable({ months, totals }: Props) {
                 {columns.map((c, i) => {
                   const val = totals[c.key as keyof Totals];
                   const cls =
+                    c.key === "totalProfit" ? totalProfitClass(val) :
                     c.key === "realProfit" ? realProfitClass(val) :
                     (c.key === "netProfit" || c.key === "netProfitSales") ? profitClass(val) :
                     "text-gray-100";
