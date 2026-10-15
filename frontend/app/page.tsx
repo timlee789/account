@@ -10,6 +10,7 @@ import CreditCardTable from "@/components/CreditCardTable";
 import CashTable from "@/components/CashTable";
 import MonthlyPLTable from "@/components/MonthlyPLTable";
 import SettingsModal from "@/components/SettingsModal";
+import CashCount from "@/components/CashCount";
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
@@ -87,7 +88,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (selectedMonth) {
+    if (selectedMonth && activeTab !== 'cash_count') {
       fetchData();
     }
   }, [activeTab, selectedMonth]);
@@ -95,6 +96,11 @@ export default function Home() {
   const checkAuth = (res: Response) => {
     if (res.status === 401) {
       window.location.href = '/login';
+      return false;
+    }
+    // 서버 오류(예: 백엔드가 꺼져 있을 때 "Internal Server Error")면 JSON 파싱을 하지 않음
+    if (!res.ok) {
+      console.warn(`API 응답 오류 ${res.status}: ${res.url} — 백엔드 서버(포트 8000)가 켜져 있는지 확인하세요.`);
       return false;
     }
     return true;
@@ -319,7 +325,7 @@ export default function Home() {
     <main className="min-h-screen p-4 sm:p-6 bg-gray-900 w-full overflow-hidden">
       <div className="w-full mx-auto space-y-6">
 
-        <Header onUpload={handleFileUpload} loading={loading} showUpload={activeTab !== 'cash'} />
+        <Header onUpload={handleFileUpload} loading={loading} showUpload={activeTab !== 'cash' && activeTab !== 'cash_count'} />
 
         {/* 탭 네비게이션 */}
         <div className="bg-gray-800/60 rounded-2xl p-3 border border-gray-700/50 backdrop-blur-sm">
@@ -386,6 +392,15 @@ export default function Home() {
                 }`}
             >
               💰 Sales Record
+            </button>
+            <button
+              onClick={() => setActiveTab('cash_count')}
+              className={`py-3.5 px-6 rounded-xl font-bold text-lg transition-all duration-200 whitespace-nowrap ${activeTab === 'cash_count'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/40 border border-indigo-400/50'
+                : 'text-gray-400 hover:text-white hover:bg-gray-700/70 border border-transparent'
+                }`}
+            >
+              🧮 Cash Count
             </button>
           </nav>
         </div>
@@ -458,6 +473,9 @@ export default function Home() {
             onDelete={handleDeleteSales}
           />
         )}
+
+        {/* Cash Count 탭: 저장 없이 지폐 합계만 계산 */}
+        {activeTab === 'cash_count' && <CashCount />}
       </div>
 
       {showSettings && (
