@@ -4,27 +4,27 @@ interface MonthRow {
   month: string;
   revenue: number;
   sales: number;
-  expense: number;
-  realExpense: number;
+  totalExpense: number;
+  businessExpense: number;
   homeExpense: number;
-  netProfit: number;
+  netProfitLedger: number;
   netProfitSales: number;
-  realProfit: number;
+  businessProfit: number;
   timLeeWage: number;
-  totalProfit: number;
+  ownerTotalProfit: number;
 }
 
 interface Totals {
   revenue: number;
   sales: number;
-  expense: number;
-  realExpense: number;
+  totalExpense: number;
+  businessExpense: number;
   homeExpense: number;
-  netProfit: number;
+  netProfitLedger: number;
   netProfitSales: number;
-  realProfit: number;
+  businessProfit: number;
   timLeeWage: number;
-  totalProfit: number;
+  ownerTotalProfit: number;
 }
 
 interface Props {
@@ -37,22 +37,22 @@ const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 
 const profitClass = (n: number) =>
   n >= 0 ? "text-indigo-300" : "text-rose-400";
 
-const realProfitClass = (n: number) =>
+const businessProfitClass = (n: number) =>
   n >= 0 ? "text-emerald-300" : "text-rose-400";
 
-const totalProfitClass = (n: number) =>
+const ownerTotalProfitClass = (n: number) =>
   n >= 0 ? "text-amber-300" : "text-rose-400";
 
 export default function MonthlyPLTable({ months, totals }: Props) {
   const columns: { key: keyof MonthRow; label: string; tone: string }[] = [
-    { key: "revenue",        label: "Revenue",      tone: "text-emerald-300" },
-    { key: "sales",          label: "Total Sales",  tone: "text-cyan-300"    },
-    { key: "expense",        label: "Total Expense",tone: "text-rose-300"    },
-    { key: "realExpense",    label: "Real Expense", tone: "text-fuchsia-300" },
-    { key: "netProfit",      label: "NP (Rev)",     tone: "text-indigo-300"  },
-    { key: "netProfitSales", label: "NP (Sales)",   tone: "text-violet-300"  },
-    { key: "realProfit",     label: "Real Profit",  tone: "text-emerald-300" },
-    { key: "totalProfit",    label: "Total Profit", tone: "text-amber-300"   },
+    { key: "revenue",          label: "Revenue",              tone: "text-emerald-300" },
+    { key: "sales",            label: "Total Sales",          tone: "text-cyan-300"    },
+    { key: "totalExpense",     label: "Total Expense",        tone: "text-rose-300"    },
+    { key: "businessExpense",  label: "Business Expense",     tone: "text-fuchsia-300" },
+    { key: "netProfitLedger",  label: "NP (Ledger)",          tone: "text-indigo-300"  },
+    { key: "netProfitSales",   label: "NP (Sales)",           tone: "text-violet-300"  },
+    { key: "businessProfit",   label: "Business Profit",      tone: "text-emerald-300" },
+    { key: "ownerTotalProfit", label: "Owner's Total Profit", tone: "text-amber-300"   },
   ];
 
   return (
@@ -69,6 +69,19 @@ export default function MonthlyPLTable({ months, totals }: Props) {
         <span className="text-gray-500 text-xs font-semibold">
           {months.length} {months.length === 1 ? "month" : "months"}
         </span>
+      </div>
+
+      {/* ── 계산식 범례 (Formula Legend) ── */}
+      <div className="mb-4 px-4 py-3 bg-gray-900/40 rounded-xl border border-white/[0.06] text-[11px] text-gray-400 leading-6 font-mono">
+        <span className="text-gray-300 font-bold not-italic">📐 계산식 (Formulas)</span>
+        <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-0.5">
+          <div><span className="text-rose-300">Total Expense</span> = (Ledger+Cash) − CardPay − CashOut + CC</div>
+          <div><span className="text-fuchsia-300">Business Expense</span> = Total Expense − Home</div>
+          <div><span className="text-indigo-300">NP (Ledger)</span> = Revenue − Total Expense</div>
+          <div><span className="text-violet-300">NP (Sales)</span> = Sales − Total Expense</div>
+          <div><span className="text-emerald-300">Business Profit</span> = Sales − Business Expense</div>
+          <div><span className="text-amber-300">Owner's Total Profit</span> = Business Profit + Owner Wage</div>
+        </div>
       </div>
 
       <div className="overflow-x-auto">
@@ -107,9 +120,9 @@ export default function MonthlyPLTable({ months, totals }: Props) {
                   {columns.map((c) => {
                     const val = row[c.key] as number;
                     const cls =
-                      c.key === "totalProfit" ? totalProfitClass(val) :
-                      c.key === "realProfit" ? realProfitClass(val) :
-                      (c.key === "netProfit" || c.key === "netProfitSales") ? profitClass(val) :
+                      c.key === "ownerTotalProfit" ? ownerTotalProfitClass(val) :
+                      c.key === "businessProfit" ? businessProfitClass(val) :
+                      (c.key === "netProfitLedger" || c.key === "netProfitSales") ? profitClass(val) :
                       "text-gray-100";
                     return (
                       <td
@@ -133,9 +146,9 @@ export default function MonthlyPLTable({ months, totals }: Props) {
                 {columns.map((c, i) => {
                   const val = totals[c.key as keyof Totals];
                   const cls =
-                    c.key === "totalProfit" ? totalProfitClass(val) :
-                    c.key === "realProfit" ? realProfitClass(val) :
-                    (c.key === "netProfit" || c.key === "netProfitSales") ? profitClass(val) :
+                    c.key === "ownerTotalProfit" ? ownerTotalProfitClass(val) :
+                    c.key === "businessProfit" ? businessProfitClass(val) :
+                    (c.key === "netProfitLedger" || c.key === "netProfitSales") ? profitClass(val) :
                     "text-gray-100";
                   return (
                     <td

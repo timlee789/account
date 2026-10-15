@@ -107,24 +107,30 @@ def get_dashboard(month: Optional[str] = None):
     lt_cash_out_amount = sum(float(t.get('amount') or t.get('expense') or 0) for t in trans if str(t.get('category') or '').strip().lower() == 'cash out')
 
     lt_total_revenue = lt_ledger_income + lt_cash_income
-    lt_total_expense = lt_ledger_expense + lt_cash_expense
-    lt_real_expense = lt_total_expense - lt_card_payment_amount - lt_cash_out_amount + lt_cc_expense
+    # lt_raw_expense: 조정 전 원장부+현금 지출 합계 (카드대금상환/현금인출 조정 전)
+    lt_raw_expense = lt_ledger_expense + lt_cash_expense
+    # lt_total_expense: Dashboard "Total Expense" 카드에 표시되는 값 (가정용 지출 포함, 내부 이체 조정 후)
+    lt_total_expense = lt_raw_expense - lt_card_payment_amount - lt_cash_out_amount + lt_cc_expense
     
     lt_home_expense = _sum_home_expense(trans, cash_rcds, credit_cards)
-    lt_business_expense = lt_real_expense - lt_home_expense
+    # lt_business_expense: Dashboard "Business Expense" 카드 = Total Expense - Home Expense
+    lt_business_expense = lt_total_expense - lt_home_expense
 
-    lt_net_profit = lt_total_revenue - lt_real_expense
+    # lt_net_profit_ledger: Dashboard "Net Profit (Ledger)" 카드 = Revenue - Total Expense
+    lt_net_profit_ledger = lt_total_revenue - lt_total_expense
     lt_total_sales = sum(float(s.get('cash') or 0) + float(s.get('debit') or 0) + float(s.get('credit') or 0) + float(s.get('doordash') or 0) + float(s.get('cash_tips') or 0) for s in sales)
-    lt_net_profit_sales = lt_total_sales - lt_real_expense
-    lt_real_profit = lt_total_sales - lt_business_expense
+    # lt_net_profit_sales: Dashboard "Net Profit (Sales)" 카드 = Total Sales - Total Expense
+    lt_net_profit_sales = lt_total_sales - lt_total_expense
+    # lt_business_profit: Dashboard "Business Profit" 카드 = Total Sales - Business Expense
+    lt_business_profit = lt_total_sales - lt_business_expense
 
     lifetime_stats = {
         "revenue": lt_total_revenue,
-        "expense": lt_real_expense,
-        "realExpense": lt_business_expense,
+        "totalExpense": lt_total_expense,
+        "businessExpense": lt_business_expense,
         "homeExpense": lt_home_expense,
-        "netProfit": lt_net_profit,
-        "realProfit": lt_real_profit,
+        "netProfitLedger": lt_net_profit_ledger,
+        "businessProfit": lt_business_profit,
         "totalSales": lt_total_sales,
         "netProfitSales": lt_net_profit_sales,
         "cardPayment": lt_card_payment_amount,
@@ -149,13 +155,18 @@ def get_dashboard(month: Optional[str] = None):
     cash_out_amount = sum(float(t.get('amount') or t.get('expense') or 0) for t in trans if str(t.get('category') or '').strip().lower() == 'cash out')
 
     total_revenue = ledger_income + cash_income
-    total_expense = ledger_expense + cash_expense
-    real_expense = total_expense - card_payment_amount - cash_out_amount + cc_expense
+    # raw_expense: 조정 전 원장부+현금 지출 합계
+    raw_expense = ledger_expense + cash_expense
+    # total_expense: Dashboard "Total Expense" 카드 값 (가정용 지출 포함, 내부 이체 조정 후)
+    # = (Ledger Expense + Cash Expense) - Card Payment - Cash Out + Credit Card Expense
+    total_expense = raw_expense - card_payment_amount - cash_out_amount + cc_expense
 
     home_expense = _sum_home_expense(trans, cash_rcds, credit_cards)
-    business_expense = real_expense - home_expense
+    # business_expense: Dashboard "Business Expense" 카드 값 = Total Expense - Home Expense
+    business_expense = total_expense - home_expense
 
-    net_profit = total_revenue - real_expense
+    # net_profit_ledger: Dashboard "Net Profit (Ledger)" 카드 값 = Total Revenue - Total Expense
+    net_profit_ledger = total_revenue - total_expense
     current_cash = cash_income - cash_expense
     
     # Calculate detailed sales breakdown
@@ -170,8 +181,10 @@ def get_dashboard(month: Optional[str] = None):
     }
     
     total_sales = sum(sales_breakdown[k] for k in ['cash', 'debit', 'credit', 'doordash', 'cash_tips'])
-    net_profit_sales = total_sales - real_expense
-    real_profit = total_sales - business_expense
+    # net_profit_sales: Dashboard "Net Profit (Sales)" 카드 값 = Total Sales - Total Expense
+    net_profit_sales = total_sales - total_expense
+    # business_profit: Dashboard "Business Profit" 카드 값 = Total Sales - Business Expense
+    business_profit = total_sales - business_expense
     
     # ------------------
     # 비용 추적 분석 로직
@@ -225,11 +238,11 @@ def get_dashboard(month: Optional[str] = None):
     
     return {
         "totalRevenue": total_revenue,
-        "totalExpense": real_expense,
-        "realExpense": business_expense,
+        "totalExpense": total_expense,
+        "businessExpense": business_expense,
         "homeExpense": home_expense,
-        "netProfit": net_profit,
-        "realProfit": real_profit,
+        "netProfitLedger": net_profit_ledger,
+        "businessProfit": business_profit,
         "totalSales": total_sales,
         "netProfitSales": net_profit_sales,
         "balance": current_cash,
@@ -336,35 +349,37 @@ def get_monthly_summary():
         revenue = d["ledger_income"] + d["cash_income"]
         if revenue <= 0:
             continue
-        total_expense_cf = d["ledger_expense"] + d["cash_expense"]
-        real_expense = total_expense_cf - d["card_payment"] - d["cash_out"] + d["cc_expense"]
-        business_expense = real_expense - d["home_expense"]
+        raw_expense_m = d["ledger_expense"] + d["cash_expense"]
+        # total_expense: Total Expense = (Ledger+Cash Expense) - Card Payment - Cash Out + Credit Card Expense
+        total_expense = raw_expense_m - d["card_payment"] - d["cash_out"] + d["cc_expense"]
+        # business_expense: Business Expense = Total Expense - Home Expense
+        business_expense = total_expense - d["home_expense"]
         sales_total = d["sales_total"]
         rows.append({
             "month": m,
             "revenue": revenue,
             "sales": sales_total,
-            "expense": real_expense,
-            "realExpense": business_expense,
+            "totalExpense": total_expense,
+            "businessExpense": business_expense,
             "homeExpense": d["home_expense"],
-            "netProfit": revenue - real_expense,
-            "netProfitSales": sales_total - real_expense,
-            "realProfit": sales_total - business_expense,
+            "netProfitLedger": revenue - total_expense,
+            "netProfitSales": sales_total - total_expense,
+            "businessProfit": sales_total - business_expense,
             "timLeeWage": d["tim_lee_wage"],
-            "totalProfit": (sales_total - business_expense) + d["tim_lee_wage"],
+            "ownerTotalProfit": (sales_total - business_expense) + d["tim_lee_wage"],
         })
 
     totals = {
         "revenue": sum(r["revenue"] for r in rows),
         "sales": sum(r["sales"] for r in rows),
-        "expense": sum(r["expense"] for r in rows),
-        "realExpense": sum(r["realExpense"] for r in rows),
+        "totalExpense": sum(r["totalExpense"] for r in rows),
+        "businessExpense": sum(r["businessExpense"] for r in rows),
         "homeExpense": sum(r["homeExpense"] for r in rows),
-        "netProfit": sum(r["netProfit"] for r in rows),
+        "netProfitLedger": sum(r["netProfitLedger"] for r in rows),
         "netProfitSales": sum(r["netProfitSales"] for r in rows),
-        "realProfit": sum(r["realProfit"] for r in rows),
+        "businessProfit": sum(r["businessProfit"] for r in rows),
         "timLeeWage": sum(r["timLeeWage"] for r in rows),
-        "totalProfit": sum(r["totalProfit"] for r in rows),
+        "ownerTotalProfit": sum(r["ownerTotalProfit"] for r in rows),
     }
 
     return {"months": rows, "totals": totals}
