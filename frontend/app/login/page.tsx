@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { Lock, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
     const [password, setPassword] = useState('');
@@ -29,9 +29,9 @@ export default function LoginPage() {
                 router.refresh();
             } else {
                 const data = await res.json();
-                setError(data.message || 'Invalid Password');
+                setError(data.detail || data.message || 'Invalid Password');
             }
-        } catch (err) {
+        } catch {
             setError('Connection failed');
         } finally {
             setLoading(false);
