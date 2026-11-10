@@ -1,36 +1,7 @@
 "use client";
 
-interface DashboardSummary {
-  totalRevenue: number;
-  totalExpense: number;
-  businessExpense?: number;
-  homeExpense?: number;
-  netProfitLedger: number;
-  businessProfit?: number;
-  totalSales?: number;
-  netProfitSales?: number;
-  balance: number;
-  cardPayment?: number;
-  salesBreakdown?: {
-    cash: number;
-    debit: number;
-    credit: number;
-    doordash: number;
-    stripe: number;
-    tips: number;
-    cash_tips: number;
-  };
-  categoryExpenses?: { name: string; amount: number; budget?: number }[];
-  payeeExpenses?: { name: string; amount: number }[];
-  lifetimeStats?: {
-    revenue: number;
-    totalExpense: number;
-    netProfitLedger: number;
-    totalSales?: number;
-    netProfitSales?: number;
-    cardPayment?: number;
-  };
-}
+import { api, jsonInit } from "@/lib/api";
+import type { DashboardSummary } from "@/lib/types";
 
 interface Props {
   summary: DashboardSummary;
@@ -42,9 +13,8 @@ interface Props {
 const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2 });
 
 export default function Dashboard({ summary, selectedMonth, onMonthChange, isLifetime }: Props) {
-  const { totalRevenue, totalExpense, businessExpense = 0, homeExpense = 0, netProfitLedger, businessProfit = 0, totalSales = 0, netProfitSales = 0, balance, salesBreakdown, categoryExpenses = [], payeeExpenses = [] } = summary;
+  const { totalRevenue, totalExpense, businessExpense = 0, homeExpense = 0, netProfitLedger, businessProfit = 0, totalSales = 0, netProfitSales = 0, salesBreakdown, categoryExpenses = [], payeeExpenses = [] } = summary;
 
-  const maxCategoryAmount = Math.max(...categoryExpenses.map(c => c.amount), 1);
   const totalCatExpense = categoryExpenses.reduce((s, c) => s + c.amount, 0);
   const maxPayeeAmount = Math.max(...payeeExpenses.map(p => p.amount), 1);
   const revenueRatio = totalRevenue + totalExpense > 0 ? (totalRevenue / (totalRevenue + totalExpense)) * 100 : 50;
@@ -59,11 +29,7 @@ export default function Dashboard({ summary, selectedMonth, onMonthChange, isLif
     if (isLifetime || !selectedMonth) return;
     const num = parseFloat(val.replace(/[^0-9.]/g, '')) || 0;
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/budgets`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ month: selectedMonth, category, amount: num })
-      });
+      await api("/budgets", jsonInit("POST", { month: selectedMonth, category, amount: num }));
     } catch (e) {
       console.error(e);
     }
@@ -177,7 +143,7 @@ export default function Dashboard({ summary, selectedMonth, onMonthChange, isLif
           {/* Owner's Total Profit (Business Profit + Owner Wage) */}
           <div className="relative overflow-hidden bg-gradient-to-br from-amber-900/50 to-yellow-900/50 rounded-2xl border border-amber-600/50 hover:border-amber-400/70 px-2 sm:px-4 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(245,158,11,0.2)] text-center group flex flex-col items-center justify-between">
             <div className="absolute top-0 right-0 w-16 h-16 bg-amber-400/5 rounded-full -translate-y-4 translate-x-4 group-hover:bg-amber-400/10 transition-all"></div>
-            <p className="text-amber-300 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-2 leading-tight flex items-center justify-center gap-1">💰 Owner's Total Profit 💰</p>
+            <p className="text-amber-300 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-2 leading-tight flex items-center justify-center gap-1">💰 Owner&apos;s Total Profit 💰</p>
             <p className={`text-xl sm:text-2xl font-black ${ownerTotalProfit >= 0 ? 'text-white' : 'text-rose-400'}`}>${fmt(ownerTotalProfit)}</p>
             <p className="text-amber-400/70 text-[9px] sm:text-[10px] mt-3 font-semibold leading-tight">Business Profit + Owner Wage (${fmt(ownerWage)})</p>
           </div>
@@ -255,7 +221,6 @@ export default function Dashboard({ summary, selectedMonth, onMonthChange, isLif
             {/* Rows */}
             <div className="border-l border-r border-white/[0.07] flex-1">
               {categoryExpenses.map((cat, idx) => {
-                const pct = Math.max(2, (cat.amount / maxCategoryAmount) * 100);
                 const sharePct = totalCatExpense > 0 ? (cat.amount / totalCatExpense) * 100 : 0;
                 return (
                   <div key={idx} className={`grid grid-cols-4 border-b border-white/[0.07] hover:bg-gray-700/20 transition-colors ${idx % 2 === 0 ? 'bg-gray-800/20' : 'bg-gray-900/20'}`}>

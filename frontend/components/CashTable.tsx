@@ -1,6 +1,7 @@
 "use client";
 
 import SearchableSelect from "./SearchableSelect";
+import type { CashRecord } from "@/lib/types";
 
 const CATEGORIES = [
     "Sales Deposit", "Cash Income",
@@ -20,20 +21,9 @@ const PAYEES = [
     "Chase Card", "Citi Card", "Amex"
 ];
 
-interface CashRecord {
-    id: number;
-    date: string;
-    category: string;
-    payee: string;
-    income: number;
-    expense: number;
-    balance: number;
-    description: string;
-}
-
 interface Props {
     records: CashRecord[];
-    onUpdate: (id: number, field: string, value: any) => void;
+    onUpdate: (id: number, field: string, value: string | number) => void;
     onDelete: (id: number) => void;
     onAdd: () => void;
 }
@@ -195,7 +185,7 @@ export default function CashTable({ records, onUpdate, onDelete, onAdd }: Props)
                         {records.length === 0 && (
                             <tr>
                                 <td colSpan={8} className="px-4 py-8 text-center text-gray-500 font-medium">
-                                    No cash records found. Click "Add New Record" to begin tracking.
+                                    No cash records found. Click &quot;Add New Record&quot; to begin tracking.
                                 </td>
                             </tr>
                         )}

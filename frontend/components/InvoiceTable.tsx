@@ -1,8 +1,9 @@
 "use client";
 
-// [수정] Props 정의 추가
+import type { InvoiceItem } from "@/lib/types";
+
 interface Props {
-  invoices: any[];
+  invoices: InvoiceItem[];
 }
 
 export default function InvoiceTable({ invoices }: Props) {
@@ -21,7 +22,7 @@ export default function InvoiceTable({ invoices }: Props) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-700">
-            {invoices.map((item: any) => (
+            {invoices.map((item) => (
               <tr key={item.id} className="hover:bg-gray-700/50 transition-colors">
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300 border-r border-gray-700">{item.date}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-indigo-400 border-r border-gray-700">{item.vendor}</td>

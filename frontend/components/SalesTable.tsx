@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
 
-interface SalesRecord {
-  date: string; cash: number; debit: number; credit: number;
-  svc: number; tips: number; tax: number; cash_tips: number;
-  doordash: number; stripe: number; total: number; deposit?: number; memo: string;
-}
+import type { SalesRecord } from '@/lib/types';
+
+type MoneyKey = 'cash' | 'debit' | 'credit' | 'svc' | 'tips' | 'tax' | 'cash_tips' | 'doordash' | 'stripe';
+type MonthSums = Record<MoneyKey | 'total' | 'deposit', number>;
+type SubtotalRow = MonthSums & { isSubtotal: true; month: string };
+type Row = SalesRecord | SubtotalRow;
 
 interface Props {
   sales: SalesRecord[];
-  onUpdate: (date: string, field: string, value: any) => void;
+  onUpdate: (date: string, field: string, value: string | number) => void;
   onDelete: (date: string) => void;
 }
 
 export default function SalesTable({ sales, onUpdate, onDelete }: Props) {
   const [inputDate, setInputDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const columns = [
+  const columns: { key: MoneyKey; label: string; color: string }[] = [
     { key: 'cash', label: 'Cash', color: 'text-green-400' },
     { key: 'debit', label: 'Debit', color: 'text-blue-400' },
     { key: 'credit', label: 'Credit', color: 'text-purple-400' },
@@ -28,7 +29,7 @@ export default function SalesTable({ sales, onUpdate, onDelete }: Props) {
 
   // 월별 합계를 포함한 새로운 리스트 생성 로직
   const sortedSales = [...sales].sort((a, b) => b.date.localeCompare(a.date));
-  const rowsWithSubtotals: any[] = [];
+  const rowsWithSubtotals: Row[] = [];
   let currentMonth = "";
   let monthSums = { cash: 0, debit: 0, credit: 0, svc: 0, tips: 0, tax: 0, cash_tips: 0, doordash: 0, stripe: 0, total: 0, deposit: 0 };
 
@@ -37,7 +38,7 @@ export default function SalesTable({ sales, onUpdate, onDelete }: Props) {
 
     // 월이 바뀌면 이전 월의 합계 행 삽입
     if (currentMonth && month !== currentMonth) {
-      rowsWithSubtotals.push({ isSubtotal: true, month: currentMonth, ...monthSums });
+      rowsWithSubtotals.push({ isSubtotal: true as const, month: currentMonth, ...monthSums });
       // 합계 초기화
       monthSums = { cash: 0, debit: 0, credit: 0, svc: 0, tips: 0, tax: 0, cash_tips: 0, doordash: 0, stripe: 0, total: 0, deposit: 0 };
     }
@@ -60,7 +61,7 @@ export default function SalesTable({ sales, onUpdate, onDelete }: Props) {
 
     // 마지막 데이터인 경우 합계 행 추가
     if (idx === sortedSales.length - 1) {
-      rowsWithSubtotals.push({ isSubtotal: true, month, ...monthSums });
+      rowsWithSubtotals.push({ isSubtotal: true as const, month, ...monthSums });
     }
   });
 
@@ -89,7 +90,7 @@ export default function SalesTable({ sales, onUpdate, onDelete }: Props) {
           </thead>
           <tbody>
             {rowsWithSubtotals.map((row, i) => {
-              if (row.isSubtotal) {
+              if ('isSubtotal' in row) {
                 return (
                   <tr key={`sub-${row.month}-${i}`} className="bg-indigo-900/60 font-black text-indigo-100">
                     <td className="px-4 py-3 border-r border-gray-700 text-center">{row.month}월 합계</td>
@@ -113,7 +114,7 @@ export default function SalesTable({ sales, onUpdate, onDelete }: Props) {
                   <td className="px-4 py-3 font-bold text-gray-300 border-r border-gray-700 bg-gray-900/20 text-center">{row.date}</td>
                   {columns.map(col => (
                     <td key={col.key} className="px-1 py-2 border-r border-gray-700">
-                      <input type="text" defaultValue={(row as any)[col.key] > 0 ? `$${Number((row as any)[col.key]).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : ""}
+                      <input type="text" defaultValue={row[col.key] > 0 ? `$${Number(row[col.key]).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : ""}
                         className={`w-full bg-transparent text-right font-bold focus:outline-none px-1 ${col.color}`}
                         onBlur={(e) => { const n = parseFloat(e.target.value.replace(/[^0-9.]/g, "")) || 0; onUpdate(row.date, col.key, n); }} />
                     </td>

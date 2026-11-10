@@ -1,31 +1,6 @@
 "use client";
 
-interface MonthRow {
-  month: string;
-  revenue: number;
-  sales: number;
-  totalExpense: number;
-  businessExpense: number;
-  homeExpense: number;
-  netProfitLedger: number;
-  netProfitSales: number;
-  businessProfit: number;
-  timLeeWage: number;
-  ownerTotalProfit: number;
-}
-
-interface Totals {
-  revenue: number;
-  sales: number;
-  totalExpense: number;
-  businessExpense: number;
-  homeExpense: number;
-  netProfitLedger: number;
-  netProfitSales: number;
-  businessProfit: number;
-  timLeeWage: number;
-  ownerTotalProfit: number;
-}
+import type { MonthlyRow as MonthRow, MonthlyTotals as Totals } from "@/lib/types";
 
 interface Props {
   months: MonthRow[];
@@ -80,7 +55,7 @@ export default function MonthlyPLTable({ months, totals }: Props) {
           <div><span className="text-indigo-300">NP (Ledger)</span> = Revenue − Total Expense</div>
           <div><span className="text-violet-300">NP (Sales)</span> = Sales − Total Expense</div>
           <div><span className="text-emerald-300">Business Profit</span> = Sales − Business Expense</div>
-          <div><span className="text-amber-300">Owner's Total Profit</span> = Business Profit + Owner Wage</div>
+          <div><span className="text-amber-300">Owner&apos;s Total Profit</span> = Business Profit + Owner Wage</div>
         </div>
       </div>
 

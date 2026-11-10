@@ -1,9 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
+import { api, jsonInit } from "@/lib/api";
+import type { Option } from "@/lib/types";
 
 interface Props {
-  categories: { id: number; name: string }[];
-  payees: { id: number; name: string }[];
+  categories: Option[];
+  payees: Option[];
   onClose: () => void;
   onRefreshOptions: () => void;
 }
@@ -11,53 +13,42 @@ interface Props {
 export default function SettingsModal({ categories = [], payees = [], onClose, onRefreshOptions }: Props) {
   const [newCategory, setNewCategory] = useState("");
   const [newPayee, setNewPayee] = useState("");
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const run = async (action: () => Promise<unknown>, failMsg: string) => {
+    try {
+      await action();
+      onRefreshOptions();
+    } catch (e) {
+      console.error(failMsg, e);
+      alert(e instanceof Error && e.message ? `${failMsg} (${e.message})` : failMsg);
+    }
+  };
 
   const handleAddCategory = async () => {
-    if (!newCategory.trim()) return;
-    try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newCategory.trim() })
-      });
-      setNewCategory("");
-      onRefreshOptions();
-    } catch (e) { console.error(e); }
+    const name = newCategory.trim();
+    if (!name) return;
+    await run(() => api("/categories", jsonInit("POST", { name })), "카테고리 추가에 실패했습니다.");
+    setNewCategory("");
   };
 
   const handleDeleteCategory = async (id: number) => {
     if (!confirm("Delete this category?")) return;
-    try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories/${id}`, { method: "DELETE" });
-      onRefreshOptions();
-    } catch (e) { console.error(e); }
+    await run(() => api(`/categories/${id}`, { method: "DELETE" }), "카테고리 삭제에 실패했습니다.");
   };
 
   const handleAddPayee = async () => {
-    if (!newPayee.trim()) return;
-    try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payees`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newPayee.trim() })
-      });
-      setNewPayee("");
-      onRefreshOptions();
-    } catch (e) { console.error(e); }
+    const name = newPayee.trim();
+    if (!name) return;
+    await run(() => api("/payees", jsonInit("POST", { name })), "지급처 추가에 실패했습니다.");
+    setNewPayee("");
   };
 
   const handleDeletePayee = async (id: number) => {
     if (!confirm("Delete this payee?")) return;
-    try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payees/${id}`, { method: "DELETE" });
-      onRefreshOptions();
-    } catch (e) { console.error(e); }
+    await run(() => api(`/payees/${id}`, { method: "DELETE" }), "지급처 삭제에 실패했습니다.");
   };
 
-  if (!mounted) return null;
+  // 설정 모달은 클릭 후에만 렌더링되므로 서버 렌더링 대상이 아니다.
+  if (typeof document === "undefined") return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[99999] flex items-center justify-center backdrop-blur-md" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.95)' }}>

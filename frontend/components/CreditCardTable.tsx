@@ -1,6 +1,7 @@
 "use client";
 
 import SearchableSelect from "./SearchableSelect";
+import type { CreditCardRecord } from "@/lib/types";
 
 const CATEGORIES = [
   "Sales Deposit", "Cash Income",
@@ -21,7 +22,7 @@ const PAYEES = [
 ];
 
 interface Props {
-  transactions: any[];
+  transactions: CreditCardRecord[];
   onUpdate: (id: number, field: string, value: string) => void;
 }
 
@@ -43,7 +44,7 @@ export default function CreditCardTable({ transactions, onUpdate }: Props) {
           </thead>
 
           <tbody className="divide-y divide-gray-700">
-            {transactions.map((t: any) => (
+            {transactions.map((t) => (
               <tr key={t.id} className="hover:bg-gray-700/50 transition-colors">
                 {/* 1. Date */}
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300 border-r border-gray-700">{t.date}</td>

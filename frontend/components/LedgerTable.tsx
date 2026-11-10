@@ -1,11 +1,12 @@
 "use client";
 
 import SearchableSelect from "./SearchableSelect";
+import type { Option, Transaction } from "@/lib/types";
 
 interface Props {
-  transactions: any[];
-  categories?: {id: number, name: string}[];
-  payees?: {id: number, name: string}[];
+  transactions: Transaction[];
+  categories?: Option[];
+  payees?: Option[];
   onUpdate: (id: number, field: string, value: string) => void;
   onAdd?: () => void;
   onDelete?: (id: number) => void;
@@ -64,7 +65,7 @@ export default function LedgerTable({ transactions, categories = [], payees = []
           </thead>
 
           <tbody className="divide-y divide-gray-700">
-            {transactions.map((t: any) => (
+            {transactions.map((t) => (
               <tr key={t.id} className="hover:bg-gray-700/50 transition-colors">
                 {/* 1. Date */}
                 <td className="px-2 py-3 whitespace-nowrap text-xs text-center text-gray-300 border-r border-gray-700" style={{ width: '85px', minWidth: '85px', maxWidth: '85px', overflow: 'hidden' }}>

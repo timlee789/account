@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
+import { api } from '@/lib/api';
 
 interface Props {
   onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -13,7 +14,11 @@ export default function Header({ onUpload, loading, showUpload = true }: Props) 
   const router = useRouter();
 
   const handleLogout = async () => {
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/logout`, { method: 'POST' });
+    try {
+      await api('/logout', { method: 'POST' });
+    } catch (e) {
+      console.error('Logout failed', e);
+    }
     router.push('/login');
     router.refresh();
   };
