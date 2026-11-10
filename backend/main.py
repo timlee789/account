@@ -18,7 +18,7 @@ from auth import (  # noqa: F401  (테스트/스크립트 호환용 re-export)
     ADMIN_PASSWORD, AuthMiddleware, _sign, make_session_token, verify_session_token,
 )
 from deps import engine  # noqa: F401
-from routers import cash, dashboard, ledger, options, sales
+from routers import cash, dashboard, ledger, options, purchasing, sales
 
 app = FastAPI()
 logger = logging.getLogger("uvicorn.error")
@@ -46,7 +46,7 @@ app.add_middleware(
 )
 app.add_middleware(AuthMiddleware)
 
-for module in (auth, dashboard, ledger, options, sales, cash):
+for module in (auth, dashboard, ledger, options, sales, cash, purchasing):
     app.include_router(module.router)
 
 

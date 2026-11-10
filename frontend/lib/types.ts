@@ -122,3 +122,70 @@ export interface MonthlySummaryResponse {
   months: MonthlyRow[];
   totals: MonthlyTotals;
 }
+
+// ---------- 식재료 주문 ----------
+export interface Vendor {
+  id: number;
+  name: string;
+  active: boolean;
+  sort_order: number;
+}
+
+export interface PurchaseItem {
+  id: number;
+  name: string;
+  category: string;
+  order_unit: string;
+  pack_size: string;
+  default_vendor_id: number | null;
+  active: boolean;
+  sort_order: number;
+}
+
+export type StaffItem = Pick<PurchaseItem, "id" | "name" | "category" | "order_unit" | "pack_size">;
+
+export interface VendorPrice {
+  item_id: number;
+  vendor_id: number;
+  price: number | null;
+  vendor_code: string;
+  note: string;
+  updated_at: string;
+}
+
+export interface StaffRequest {
+  item_id: number;
+  qty: number;
+  status: "requested" | "ordered" | "received";
+}
+
+export interface CompareLine {
+  request_id: number;
+  item_id: number;
+  name: string;
+  category: string;
+  order_unit: string;
+  pack_size: string;
+  qty: number;
+  status: "requested" | "ordered" | "received";
+  assigned_vendor_id: number | null;
+  suggested_vendor_id: number | null;
+  vendor_id: number | null;
+  unit_price: number | null;
+  line_total: number | null;
+  prices: { vendor_id: number; price: number | null; note: string; vendor_code: string }[];
+}
+
+export interface VendorTotal {
+  vendor_id: number;
+  total: number;
+  lines: number;
+  unpriced: number;
+}
+
+export interface CompareResponse {
+  date: string;
+  vendors: Vendor[];
+  lines: CompareLine[];
+  vendor_totals: VendorTotal[];
+}

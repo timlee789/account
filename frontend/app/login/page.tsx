@@ -25,7 +25,9 @@ export default function LoginPage() {
             });
 
             if (res.ok) {
-                router.push('/');
+                const data = await res.json().catch(() => ({}));
+                // 직원 비밀번호로 로그인하면 주문 입력 화면으로 이동
+                router.push(data.role === 'staff' ? '/order' : '/');
                 router.refresh();
             } else {
                 const data = await res.json();

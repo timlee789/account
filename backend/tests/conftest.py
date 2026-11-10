@@ -9,3 +9,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import finance_engine  # noqa: E402
 
 finance_engine.ExpenseEngine.create_tables = lambda self: None
+
+import purchasing  # noqa: E402
+
+purchasing.PurchasingEngine.real_ensure_schema = purchasing.PurchasingEngine.ensure_schema  # DB 통합 테스트용 원본
+purchasing.PurchasingEngine.ensure_schema = lambda self: None  # 실제 DB 에 테이블을 만들지 않는다

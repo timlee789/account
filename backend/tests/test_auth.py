@@ -14,15 +14,15 @@ def client():
 def test_session_token_roundtrip_and_tamper_detection():
     token = main.make_session_token()
     assert main.verify_session_token(token)
-    expires, sig = token.split(".")
-    assert not main.verify_session_token(f"{int(expires) + 1000}.{sig}")   # 만료시각 위조
+    expires, role, sig = token.split(".")
+    assert not main.verify_session_token(f"{int(expires) + 1000}.{role}.{sig}")   # 만료시각 위조
     assert not main.verify_session_token("1.abc")
     assert not main.verify_session_token(None)
 
 
 def test_expired_token_rejected():
-    expires = str(int(time.time()) - 1)
-    assert not main.verify_session_token(f"{expires}.{main._sign(expires)}")
+    payload = f"{int(time.time()) - 1}.admin"
+    assert not main.verify_session_token(f"{payload}.{main._sign(payload)}")
 
 
 def test_protected_endpoint_requires_cookie(client):

@@ -16,6 +16,7 @@ import CashTable from "@/components/CashTable";
 import MonthlyPLTable from "@/components/MonthlyPLTable";
 import SettingsModal from "@/components/SettingsModal";
 import CashCount from "@/components/CashCount";
+import PurchasingTab from "@/components/purchasing/PurchasingTab";
 
 const EMPTY_SUMMARY: DashboardSummary = {
   totalRevenue: 0,
@@ -45,6 +46,7 @@ const TABS = [
   { id: 'cash', label: '💵 CASH' },
   { id: 'sales', label: '💰 Sales Record' },
   { id: 'cash_count', label: '🧮 Cash Count' },
+  { id: 'purchasing', label: '🛒 Purchasing' },
 ] as const;
 
 export default function Home() {
@@ -80,12 +82,15 @@ export default function Home() {
 
   // Hydration mismatch 방지를 위해 클라이언트 마운트 후 날짜 설정
   useEffect(() => {
+    api<{ role: string | null }>('/me')
+      .then((me) => { if (me.role === 'staff') window.location.replace('/order'); })
+      .catch(() => {});
     fetchOptions();
     setSelectedMonth(new Date().toISOString().substring(0, 7));
   }, []);
 
   useEffect(() => {
-    if (selectedMonth && activeTab !== 'cash_count') {
+    if (selectedMonth && activeTab !== 'cash_count' && activeTab !== 'purchasing') {
       fetchData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchData 는 activeTab/selectedMonth 를 읽는 클로저
@@ -202,7 +207,7 @@ export default function Home() {
     <main className="min-h-screen p-4 sm:p-6 bg-gray-900 w-full overflow-hidden">
       <div className="w-full mx-auto space-y-6">
 
-        <Header onUpload={handleFileUpload} loading={loading} showUpload={activeTab !== 'cash' && activeTab !== 'cash_count'} />
+        <Header onUpload={handleFileUpload} loading={loading} showUpload={!['cash', 'cash_count', 'purchasing'].includes(activeTab)} />
 
         {/* 탭 네비게이션 */}
         <div className="bg-gray-800/60 rounded-2xl p-3 border border-gray-700/50 backdrop-blur-sm">
@@ -296,6 +301,9 @@ export default function Home() {
 
         {/* Cash Count 탭: 저장 없이 지폐 합계만 계산 */}
         {activeTab === 'cash_count' && <CashCount />}
+
+        {/* 식재료 주문: 가격 비교, 품목/가격 관리 */}
+        {activeTab === 'purchasing' && <PurchasingTab />}
       </div>
 
       {showSettings && (
