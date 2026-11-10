@@ -157,6 +157,16 @@ def price_history(item_id: int):
     return {"data": purchasing.price_history(item_id)}
 
 
+@router.get("/report")
+def report(date_from: str = Query(alias="from"), date_to: str = Query(alias="to"),
+           vendor_id: Optional[int] = None, category: Optional[str] = None, item_id: Optional[int] = None):
+    """구매 현황: 발주 처리된 주문의 기간별 집계와 상세 내역."""
+    _date(date_from), _date(date_to)
+    if date_from > date_to:
+        raise HTTPException(status_code=422, detail="from must be on or before to")
+    return purchasing.report(date_from, date_to, vendor_id, category, item_id)
+
+
 @router.get("/compare")
 def compare(date: str = Query(...)):
     return purchasing.compare(_date(date))

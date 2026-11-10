@@ -189,3 +189,48 @@ export interface CompareResponse {
   lines: CompareLine[];
   vendor_totals: VendorTotal[];
 }
+
+// ---------- 구매 현황 ----------
+export interface PurchaseRow {
+  id: number;
+  date: string;
+  item_id: number;
+  name: string;
+  category: string;
+  order_unit: string;
+  qty: number;
+  status: string;
+  vendor_id: number | null;
+  vendor: string;
+  unit_price: number | null;
+  line_total: number | null;
+}
+
+export interface ItemStat {
+  item_id: number;
+  name: string;
+  category: string;
+  order_unit: string;
+  qty: number;
+  spend: number;
+  purchases: number;
+  avg_price: number | null;
+  min_price: number | null;
+  max_price: number | null;
+  first_price: number | null;
+  last_price: number | null;
+  last_date: string | null;
+  last_vendor: string | null;
+  change_pct: number | null;
+}
+
+export interface PurchaseReport {
+  from: string;
+  to: string;
+  summary: { total_spend: number; lines: number; unpriced_lines: number; items: number };
+  by_vendor: { vendor: string; vendor_id: number | null; spend: number; lines: number; share: number }[];
+  by_category: { category: string; spend: number; lines: number }[];
+  by_month: { month: string; spend: number; lines: number }[];
+  by_item: ItemStat[];
+  rows: PurchaseRow[];
+}

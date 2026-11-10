@@ -141,3 +141,32 @@ def test_api_roles_end_to_end(store, monkeypatch):
     client.cookies.set("auth-token", auth.make_session_token("admin"))
     cmp_ = client.get("/purchasing/compare", params={"date": "2026-04-01"}).json()
     assert len(cmp_["lines"]) == 1 and len(cmp_["vendors"]) == 6
+
+
+def test_report_counts_only_ordered_lines_and_applies_filters(store):
+    # test_order_flow 에서 Lettuce 3박스가 US Foods 로 $30 에 발주(3/2)되었고, Bacon 은 삭제됨
+    usf, rd = vendor_id(store, "US Foods"), vendor_id(store, "Restaurant Depot")
+    lettuce = item_id(store, "Lettuce")
+    # 발주 전(requested) 줄은 현황에 포함되지 않는다
+    store.set_request_qty("2026-03-05", lettuce, 7, "staff")
+    rep = store.report("2026-03-01", "2026-03-31")
+    assert rep["summary"]["lines"] == 1 and rep["summary"]["total_spend"] == 90.0
+    row = rep["rows"][0]
+    assert (row["date"], row["vendor"], row["qty"], row["unit_price"], row["line_total"]) == ("2026-03-02", "US Foods", 3.0, 30.0, 90.0)
+    assert rep["by_vendor"][0]["vendor"] == "US Foods" and rep["by_vendor"][0]["share"] == 100.0
+
+    # 기간/구매처/품목 필터
+    assert store.report("2026-04-01", "2026-04-30")["rows"] == []
+    assert store.report("2026-03-01", "2026-03-31", vendor_id=rd)["rows"] == []
+    assert len(store.report("2026-03-01", "2026-03-31", vendor_id=usf, item_id=lettuce)["rows"]) == 1
+    assert store.report("2026-03-01", "2026-03-31", category="Beef")["rows"] == []
+
+    # 발주 처리하면 단가가 스냅샷으로 들어와 집계에 반영된다
+    store.set_price(lettuce, rd, 20.0)
+    store.set_price(lettuce, usf, 25.0)
+    assert store.mark_ordered("2026-03-05", rd) == 1                           # 최저가 RD 로 발주
+    rep = store.report("2026-03-01", "2026-03-31", item_id=lettuce)
+    item = rep["by_item"][0]
+    assert item["purchases"] == 2 and item["qty"] == 10.0
+    assert item["spend"] == 90.0 + 140.0 and item["first_price"] == 30.0 and item["last_price"] == 20.0
+    assert item["change_pct"] == -33.3 and item["last_vendor"] == "Restaurant Depot"

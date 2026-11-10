@@ -17,6 +17,7 @@ import MonthlyPLTable from "@/components/MonthlyPLTable";
 import SettingsModal from "@/components/SettingsModal";
 import CashCount from "@/components/CashCount";
 import PurchasingTab from "@/components/purchasing/PurchasingTab";
+import PurchaseReport from "@/components/purchasing/PurchaseReport";
 
 const EMPTY_SUMMARY: DashboardSummary = {
   totalRevenue: 0,
@@ -47,6 +48,7 @@ const TABS = [
   { id: 'sales', label: '💰 Sales Record' },
   { id: 'cash_count', label: '🧮 Cash Count' },
   { id: 'purchasing', label: '🛒 Purchasing' },
+  { id: 'purchase_report', label: '📊 Purchase Report' },
 ] as const;
 
 export default function Home() {
@@ -90,7 +92,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (selectedMonth && activeTab !== 'cash_count' && activeTab !== 'purchasing') {
+    if (selectedMonth && activeTab !== 'cash_count' && activeTab !== 'purchasing' && activeTab !== 'purchase_report') {
       fetchData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchData 는 activeTab/selectedMonth 를 읽는 클로저
@@ -207,7 +209,7 @@ export default function Home() {
     <main className="min-h-screen p-4 sm:p-6 bg-gray-900 w-full overflow-hidden">
       <div className="w-full mx-auto space-y-6">
 
-        <Header onUpload={handleFileUpload} loading={loading} showUpload={!['cash', 'cash_count', 'purchasing'].includes(activeTab)} />
+        <Header onUpload={handleFileUpload} loading={loading} showUpload={!['cash', 'cash_count', 'purchasing', 'purchase_report'].includes(activeTab)} />
 
         {/* 탭 네비게이션 */}
         <div className="bg-gray-800/60 rounded-2xl p-3 border border-gray-700/50 backdrop-blur-sm">
@@ -304,6 +306,9 @@ export default function Home() {
 
         {/* 식재료 주문: 가격 비교, 품목/가격 관리 */}
         {activeTab === 'purchasing' && <PurchasingTab />}
+
+        {/* 구매 현황표: 품목/구매처/기간별 구매 통계 */}
+        {activeTab === 'purchase_report' && <PurchaseReport />}
       </div>
 
       {showSettings && (

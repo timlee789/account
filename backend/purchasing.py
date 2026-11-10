@@ -27,6 +27,71 @@ def pick_vendor(prices: dict, default_vendor_id: Optional[int], active_vendor_id
     return default_vendor_id if default_vendor_id in tied else tied[0]
 
 
+def summarize(rows: list) -> dict:
+    """구매 내역(rows)을 합계/구매처별/분류별/월별/품목별로 집계한다.
+    단가가 없는(가격 미입력 상태로 발주된) 줄은 금액 합계에서 빠지고 unpriced 로 따로 센다.
+    서로 다른 단위의 수량은 합산하지 않는다(품목별로만 합산)."""
+    total = 0.0
+    unpriced = 0
+    vendors: dict = {}
+    categories: dict = {}
+    months: dict = {}
+    items: dict = {}
+    for r in sorted(rows, key=lambda x: (x['date'], x.get('id', 0))):          # 오래된 순으로 처리
+        price, qty = r.get('unit_price'), r['qty']
+        spend = round(price * qty, 2) if price is not None else None
+        if spend is None:
+            unpriced += 1
+        else:
+            total += spend
+        v = vendors.setdefault(r['vendor'] or 'Unassigned', {"vendor": r['vendor'] or 'Unassigned', "vendor_id": r.get('vendor_id'), "spend": 0.0, "lines": 0})
+        v["lines"] += 1
+        c = categories.setdefault(r['category'] or 'Other', {"category": r['category'] or 'Other', "spend": 0.0, "lines": 0})
+        c["lines"] += 1
+        m = months.setdefault(r['date'][:7], {"month": r['date'][:7], "spend": 0.0, "lines": 0})
+        m["lines"] += 1
+        it = items.setdefault(r['item_id'], {
+            "item_id": r['item_id'], "name": r['name'], "category": r['category'], "order_unit": r['order_unit'],
+            "qty": 0.0, "qty_priced": 0.0, "spend": 0.0, "purchases": 0, "min_price": None, "max_price": None,
+            "first_price": None, "last_price": None, "last_date": None, "last_vendor": None})
+        it["qty"] += qty
+        it["purchases"] += 1
+        if spend is not None:
+            for bucket in (v, c, m, it):
+                bucket["spend"] += spend
+            it["qty_priced"] += qty
+            it["min_price"] = price if it["min_price"] is None else min(it["min_price"], price)
+            it["max_price"] = price if it["max_price"] is None else max(it["max_price"], price)
+            if it["first_price"] is None:
+                it["first_price"] = price
+            it["last_price"], it["last_date"], it["last_vendor"] = price, r['date'], r['vendor']
+
+    for it in items.values():
+        it["avg_price"] = round(it["spend"] / it["qty_priced"], 4) if it["qty_priced"] else None
+        fp, lp = it["first_price"], it["last_price"]
+        it["change_pct"] = round((lp - fp) / fp * 100, 1) if fp and lp is not None and it["purchases"] > 1 else None
+        it["qty"] = round(it["qty"], 2)
+        it["spend"] = round(it["spend"], 2)
+        del it["qty_priced"]
+    by_vendor = sorted(vendors.values(), key=lambda x: -x["spend"])
+    for v in by_vendor:
+        v["spend"] = round(v["spend"], 2)
+        v["share"] = round(v["spend"] / total * 100, 1) if total else 0.0
+    by_category = sorted(categories.values(), key=lambda x: -x["spend"])
+    for c in by_category:
+        c["spend"] = round(c["spend"], 2)
+    by_month = sorted(months.values(), key=lambda x: x["month"])
+    for m in by_month:
+        m["spend"] = round(m["spend"], 2)
+    return {
+        "summary": {"total_spend": round(total, 2), "lines": len(rows), "unpriced_lines": unpriced, "items": len(items)},
+        "by_vendor": by_vendor,
+        "by_category": by_category,
+        "by_month": by_month,
+        "by_item": sorted(items.values(), key=lambda x: -x["spend"]),
+    }
+
+
 def _clean(row: dict) -> dict:
     return {k: (float(v) if isinstance(v, Decimal) else v) for k, v in row.items()}
 
@@ -316,3 +381,29 @@ class PurchasingEngine:
         self._run("UPDATE order_requests SET status = %s, updated_at = now() WHERE id = %s",
                   (status, request_id), commit=True)
         return True
+
+    # ---------- 구매 현황 (통계) ----------
+    def report(self, date_from: str, date_to: str, vendor_id: Optional[int] = None,
+               category: Optional[str] = None, item_id: Optional[int] = None):
+        """발주 처리된(ordered/received) 주문을 기간/구매처/분류/품목으로 걸러 집계한다.
+        금액은 발주 시점에 저장된 단가 기준이다."""
+        where = ["r.status IN ('ordered', 'received')", "r.order_date >= %s", "r.order_date <= %s"]
+        params: list = [date_from, date_to]
+        if vendor_id is not None:
+            where.append("r.assigned_vendor_id = %s")
+            params.append(vendor_id)
+        if category:
+            where.append("i.category = %s")
+            params.append(category)
+        if item_id is not None:
+            where.append("r.item_id = %s")
+            params.append(item_id)
+        rows = self._run(
+            "SELECT r.id, r.order_date AS date, r.item_id, i.name, i.category, i.order_unit, r.qty, r.status, "
+            "r.assigned_vendor_id AS vendor_id, COALESCE(v.name, 'Unassigned') AS vendor, r.unit_price "
+            "FROM order_requests r JOIN purchase_items i ON i.id = r.item_id "
+            "LEFT JOIN vendors v ON v.id = r.assigned_vendor_id "
+            f"WHERE {' AND '.join(where)} ORDER BY r.order_date DESC, i.name", tuple(params), fetch='all')
+        for r in rows:
+            r["line_total"] = round(r["unit_price"] * r["qty"], 2) if r["unit_price"] is not None else None
+        return {"from": date_from, "to": date_to, **summarize(rows), "rows": rows}
