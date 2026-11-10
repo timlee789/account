@@ -212,14 +212,15 @@ export default function Home() {
         <Header onUpload={handleFileUpload} loading={loading} showUpload={!['cash', 'cash_count', 'purchasing', 'purchase_report'].includes(activeTab)} />
 
         {/* 탭 네비게이션 */}
-        <div className="bg-gray-800/60 rounded-2xl p-3 border border-gray-700/50 backdrop-blur-sm">
-          <nav className="flex flex-wrap gap-3">
+        <div className="bg-gray-800/60 rounded-xl p-2 border border-gray-700/50 backdrop-blur-sm">
+          {/* 탭 10개가 한 줄에 들어가도록 작게 표시. 화면이 아주 좁으면 가로 스크롤 */}
+          <nav className="flex flex-nowrap gap-0.5 overflow-x-auto">
             {TABS.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-3.5 px-6 rounded-xl font-bold text-lg transition-all duration-200 whitespace-nowrap ${activeTab === tab.id
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/40 border border-indigo-400/50'
+                className={`py-2 px-2 rounded-lg font-bold text-[13px] transition-all duration-200 whitespace-nowrap ${activeTab === tab.id
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/40 border border-indigo-400/50'
                   : 'text-gray-400 hover:text-white hover:bg-gray-700/70 border border-transparent'
                   }`}
               >
